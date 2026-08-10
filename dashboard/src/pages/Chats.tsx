@@ -54,6 +54,8 @@ import './Chats.css';
 const MARK_READ_DEBOUNCE_MS = 750;
 // Quiet window for coalescing WS-burst-driven sidebar refetches into one getChats call.
 const SIDEBAR_REFETCH_DEBOUNCE_MS = 300;
+// How long a clicked search hit stays armed while its chat loads before the intent expires.
+const PENDING_HIT_TTL_MS = 15_000;
 
 // mergeDeliveryStatus (forward-only delivery-tick merge) is shared with mergeOrAppend in utils/chatMessages
 // so the WS append path and the ack path apply the exact same rule.
@@ -550,7 +552,7 @@ export function Chats() {
   // and refetches on open — no background fetch either way.
   const handleStatusReceived = useCallback(
     (event: { sessionId: string }) => {
-      queryClient.invalidateQueries({ queryKey: ['contact-statuses', event.sessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['contact-statuses', event.sessionId] });
     },
     [queryClient],
   );
@@ -579,10 +581,10 @@ export function Chats() {
     reconnectHadConnected.current = decision.hadConnected;
     reconnectWasDisconnected.current = decision.wasDisconnected;
     if (decision.invalidate) {
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedSessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['messages', selectedSessionId] });
       // Statuses are live now (status.received): a story posted during the socket gap would
       // otherwise stay invisible until a focus refetch.
-      queryClient.invalidateQueries({ queryKey: ['contact-statuses', selectedSessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['contact-statuses', selectedSessionId] });
     }
   }, [isConnected, selectedSessionId, queryClient]);
 
@@ -688,11 +690,25 @@ export function Chats() {
   // target chat may not be available at click time. pendingHitRef carries the intent across that
   // async gap: the chat-select effect picks it up once the list lands, and the scroll effect runs
   // once the messages have rendered.
-  const pendingHitRef = useRef<{ chatId: string; waMessageId: string } | null>(null);
+  const pendingHitRef = useRef<{ chatId: string; waMessageId: string; at: number } | null>(null);
+
+  // A pending hit whose chat never appears (deleted, filtered, beyond the server's list window)
+  // previously stayed armed forever — the layout effect then hijacked the scroll the moment the
+  // user MANUALLY opened that chat minutes later. Reads go through this helper so a stale intent
+  // expires instead.
+  const readPendingHit = () => {
+    const pending = pendingHitRef.current;
+    if (!pending) return null;
+    if (Date.now() - pending.at > PENDING_HIT_TTL_MS) {
+      pendingHitRef.current = null;
+      return null;
+    }
+    return pending;
+  };
 
   const handleSearchHit = useCallback(
     (hit: SearchHit) => {
-      pendingHitRef.current = { chatId: hit.chatId, waMessageId: hit.waMessageId };
+      pendingHitRef.current = { chatId: hit.chatId, waMessageId: hit.waMessageId, at: Date.now() };
       if (hit.sessionId !== selectedSessionId) {
         // Switching session triggers loadChats; the effect below selects the chat once the list lands.
         setSelectedSessionId(hit.sessionId);
@@ -725,7 +741,7 @@ export function Chats() {
 
   // After a session switch the chats list reloads — pick up the pending chat once it appears.
   useEffect(() => {
-    const pending = pendingHitRef.current;
+    const pending = readPendingHit();
     if (!pending || activeChat?.id === pending.chatId) return;
     const chat = chats.find(c => c.id === pending.chatId);
     if (chat) {
@@ -751,7 +767,7 @@ export function Chats() {
   // Degrades silently to session+chat selection when the element isn't present — the message is
   // still visible in the conversation.
   useLayoutEffect(() => {
-    const pending = pendingHitRef.current;
+    const pending = readPendingHit();
     if (!pending || !activeChat || activeChat.id !== pending.chatId) return;
     if (loadingMessages || messages.length === 0) return;
     const container = messagesContainerRef.current;

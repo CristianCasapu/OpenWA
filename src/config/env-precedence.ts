@@ -125,6 +125,10 @@ export const BLANK_SHADOWED_ENV_KEYS: string[] = [
   'AUTH_LOCKOUT_WINDOW_MS',
   'AUTH_LOCKOUT_BLOCK_MS',
   'AUTH_LOCKOUT_MAX_KEYS',
+  // Two-factor auth: the server-side master secret (like API_MASTER_KEY, a secret with no dashboard
+  // route) and the session-token TTL. Blank-forwarded so a host value pins and a blank does not shadow.
+  'MFA_KEY',
+  'MFA_SESSION_TTL_MS',
   'CSP_UPGRADE_INSECURE_REQUESTS',
   // whatsapp-web.js launch knobs: the WhatsApp Web version pin, its remote HTML template, and the
   // first-boot init wait raised for slow hosts.

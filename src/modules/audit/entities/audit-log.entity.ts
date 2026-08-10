@@ -13,6 +13,12 @@ export enum AuditAction {
   // (429) attempts do not — so a sustained probe never turns lockout into an audit-write flood.
   API_KEY_LOCKOUT = 'api_key_lockout',
 
+  // Two-factor authentication (TOTP) events on an API key.
+  MFA_ENROLLED = 'mfa_enrolled',
+  MFA_DISABLED = 'mfa_disabled',
+  MFA_VERIFIED = 'mfa_verified',
+  MFA_FAILED = 'mfa_failed',
+
   // Rate-limit enforcement (sampled: at most one row per subject+kind per minute — see
   // EventsGateway — so enforcing a limit never becomes an audit-write flood of its own).
   RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',

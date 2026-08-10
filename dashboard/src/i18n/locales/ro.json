@@ -180,7 +180,15 @@
     "help": "Ai nevoie de ajutor?",
     "viewDocs": "Vezi documentația",
     "footer": "Realizat cu ❤️ de Yudhi Armyndharis și comunitatea OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Cod de autentificare în doi pași",
+      "codePlaceholder": "000000",
+      "hint": "Introdu codul de 6 cifre din aplicația de autentificare.",
+      "verify": "Verifică",
+      "back": "Înapoi",
+      "invalidCode": "Cod invalid. Încearcă din nou."
+    }
   },
   "dashboard": {
     "title": "Panou de control",
@@ -546,6 +554,30 @@
       "copy": "Copiază",
       "revoke": "Revocă",
       "delete": "Șterge"
+    },
+    "mfa": {
+      "title": "Autentificare în doi pași",
+      "subtitle": "Protejează această cheie admin cu o aplicație TOTP (Google Authenticator etc.).",
+      "on": "Activat",
+      "off": "Dezactivat",
+      "interactiveOnlyWarning": "Activarea 2FA face cheia interactiv-only — nu va mai funcționa pentru clienți API headless. Păstrează o cheie de operator separată pentru automatizări.",
+      "enable": "Activează 2FA",
+      "setupFailed": "Nu s-a putut porni configurarea 2FA",
+      "scanInstruction": "Scanează acest cod QR cu aplicația de autentificare sau introdu cheia manual.",
+      "qrAlt": "Cod QR 2FA",
+      "manualKey": "Cheie manuală:",
+      "copy": "Copiază",
+      "secretCopied": "Secret copiat",
+      "enterCodeToConfirm": "Introdu codul de 6 cifre pentru confirmare",
+      "codePlaceholder": "000000",
+      "invalidCode": "Cod invalid. Încearcă din nou.",
+      "confirmEnable": "Confirmă și activează",
+      "enabledToast": "Autentificarea în doi pași a fost activată",
+      "enabledNote": "2FA este activat pentru această cheie. Vei introduce un cod din aplicația de autentificare la fiecare autentificare în dashboard.",
+      "disable": "Dezactivează 2FA",
+      "enterCodeToDisable": "Introdu un cod curent pentru a dezactiva 2FA",
+      "confirmDisable": "Dezactivează",
+      "disabledToast": "Autentificarea în doi pași a fost dezactivată"
     }
   },
   "logs": {

@@ -48,6 +48,21 @@ export class ApiKey {
   @Column({ type: 'int', default: 0 })
   usageCount!: number;
 
+  // Two-factor authentication (TOTP / Google Authenticator). Only ADMIN keys may enrol (enforced in
+  // the controller). `mfaEnabled` flips true only after a code is confirmed; while a secret is being
+  // set up but not yet confirmed it is stored with `mfaEnabled=false`. `mfaSecret` is the TOTP shared
+  // secret, AES-256-GCM encrypted at rest (recoverable — see mfa.service.ts), never the raw base32.
+  // When `mfaEnabled` is true the key becomes interactive-only: the ApiKeyGuard refuses it as a plain
+  // bearer credential unless a valid post-TOTP dashboard session token accompanies it.
+  @Column({ type: 'boolean', default: false })
+  mfaEnabled!: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  mfaSecret!: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  mfaEnrolledAt!: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

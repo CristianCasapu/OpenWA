@@ -609,28 +609,58 @@ export interface SearchResults {
 // API Client
 // =============================================================================
 
+// Post-TOTP dashboard session token (2FA). Sent alongside X-API-Key so an MFA-enabled key — which the
+// gateway refuses as a plain bearer — is accepted. Stored separately from the key so it can be dropped
+// (session expiry) without forcing the operator to re-type the key.
+export const DASHBOARD_SESSION_STORAGE_KEY = 'openwa_dashboard_session';
+
+/** X-API-Key (+ X-Dashboard-Session when present) headers from sessionStorage. */
+function authHeaders(): Record<string, string> {
+  const apiKey = sessionStorage.getItem('openwa_api_key');
+  const session = sessionStorage.getItem(DASHBOARD_SESSION_STORAGE_KEY);
+  return {
+    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...(session ? { 'X-Dashboard-Session': session } : {}),
+  };
+}
+
+/**
+ * Handle a 401. `MFA_REQUIRED` means the key is valid but its 2FA session is missing/expired: drop
+ * only the session token (keep the key) so the login screen resumes at the code step. Any other 401
+ * is a bad/revoked key: clear everything. Either way, bounce to '/'.
+ */
+async function handleUnauthorized(response: Response): Promise<void> {
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => ({}))) as { code?: string };
+  sessionStorage.removeItem(DASHBOARD_SESSION_STORAGE_KEY);
+  if (body?.code !== 'MFA_REQUIRED') {
+    sessionStorage.removeItem('openwa_api_key');
+  }
+  if (typeof window !== 'undefined') {
+    window.location.assign('/');
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-
-  // Get API key from sessionStorage for authentication
-  const apiKey = sessionStorage.getItem('openwa_api_key');
 
   // For FormData (file uploads) let the browser set multipart/form-data + boundary itself.
   const isFormData = options.body instanceof FormData;
   const headers: HeadersInit = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...authHeaders(),
     ...options.headers,
   };
 
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401) {
-    // The stored API key is invalid/expired/revoked — clear it and return to login
-    // so the user isn't stuck on a dashboard that 401s every request.
-    sessionStorage.removeItem('openwa_api_key');
+    // The stored API key is invalid/expired/revoked (or its 2FA session lapsed) — clear the relevant
+    // credential and return to login so the user isn't stuck on a dashboard that 401s every request.
+    await handleUnauthorized(response);
     if (typeof window !== 'undefined') {
-      window.location.assign('/');
       // The page is navigating away — halt this request's promise chain so callers neither
       // throw the generic error below (flashing a toast) nor receive an undefined payload.
       return new Promise<T>(() => {});
@@ -666,15 +696,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 /** Like {@link request} but returns the raw response text — e.g. a plugin's HTML config-UI bundle. */
 async function requestText(endpoint: string): Promise<string> {
-  const apiKey = sessionStorage.getItem('openwa_api_key');
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: { ...(apiKey ? { 'X-API-Key': apiKey } : {}) },
+    headers: { ...authHeaders() },
   });
 
   if (response.status === 401) {
-    sessionStorage.removeItem('openwa_api_key');
+    await handleUnauthorized(response);
     if (typeof window !== 'undefined') {
-      window.location.assign('/');
       return new Promise<string>(() => {});
     }
   }
@@ -691,20 +719,16 @@ async function requestText(endpoint: string): Promise<string> {
 async function requestBlob(endpoint: string): Promise<Blob> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get API key from sessionStorage for authentication
-  const apiKey = sessionStorage.getItem('openwa_api_key');
-
   const headers: HeadersInit = {
-    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...authHeaders(),
   };
 
   const response = await fetch(url, { headers });
 
   if (response.status === 401) {
-    // The stored API key is invalid/expired/revoked — clear it and return to login
-    sessionStorage.removeItem('openwa_api_key');
+    // The stored API key is invalid/expired/revoked (or its 2FA session lapsed) — clear + return to login
+    await handleUnauthorized(response);
     if (typeof window !== 'undefined') {
-      window.location.assign('/');
       // Halt this request's promise chain so callers neither throw nor receive an undefined payload.
       return new Promise<Blob>(() => {});
     }
@@ -933,6 +957,30 @@ export const apiKeyApi = {
     }),
   delete: (id: string) => request<void>(`/auth/api-keys/${id}`, { method: 'DELETE' }),
   revoke: (id: string) => request<ApiKey>(`/auth/api-keys/${id}/revoke`, { method: 'POST' }),
+};
+
+// =============================================================================
+// Two-factor auth (TOTP) API — for the current session's ADMIN key. Enrolment endpoints are
+// @MfaExempt server-side, so they work with the key alone. `session` is used at LOGIN (with the raw
+// key), so it lives in Login.tsx as a direct fetch rather than here.
+// =============================================================================
+
+export interface MfaSetupResponse {
+  otpauthUri: string;
+  qrDataUrl: string;
+  secret: string;
+}
+
+export const mfaApi = {
+  status: () => request<{ enabled: boolean }>('/auth/mfa/status'),
+  setup: () => request<MfaSetupResponse>('/auth/mfa/setup', { method: 'POST' }),
+  enable: (code: string) =>
+    request<{ enabled: true; sessionToken: string; expiresAt: string }>('/auth/mfa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+  disable: (code: string) =>
+    request<{ enabled: false }>('/auth/mfa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
 };
 
 // =============================================================================

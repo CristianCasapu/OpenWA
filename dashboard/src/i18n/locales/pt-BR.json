@@ -177,7 +177,15 @@
     "help": "Precisa de ajuda?",
     "viewDocs": "Ver documentação",
     "footer": "Feito com ❤️ por Yudhi Armyndharis e a comunidade OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Código de dois fatores",
+      "codePlaceholder": "000000",
+      "hint": "Digite o código de 6 dígitos do seu app autenticador.",
+      "verify": "Verificar",
+      "back": "Voltar",
+      "invalidCode": "Código inválido. Tente novamente."
+    }
   },
   "dashboard": {
     "title": "Painel",
@@ -497,6 +505,30 @@
       "copy": "Copiar",
       "revoke": "Revogar",
       "delete": "Excluir"
+    },
+    "mfa": {
+      "title": "Autenticação de dois fatores",
+      "subtitle": "Proteja esta chave de administrador com um app TOTP (Google Authenticator, etc.).",
+      "on": "Ativado",
+      "off": "Desativado",
+      "interactiveOnlyWarning": "Ativar o 2FA torna esta chave somente interativa — ela deixará de funcionar para clientes de API headless. Mantenha uma chave de operador separada para automação.",
+      "enable": "Ativar 2FA",
+      "setupFailed": "Não foi possível iniciar a configuração do 2FA",
+      "scanInstruction": "Escaneie este QR code com seu app autenticador ou digite a chave manualmente.",
+      "qrAlt": "QR code do 2FA",
+      "manualKey": "Chave manual:",
+      "copy": "Copiar",
+      "secretCopied": "Segredo copiado",
+      "enterCodeToConfirm": "Digite o código de 6 dígitos para confirmar",
+      "codePlaceholder": "000000",
+      "invalidCode": "Código inválido. Tente novamente.",
+      "confirmEnable": "Confirmar e ativar",
+      "enabledToast": "Autenticação de dois fatores ativada",
+      "enabledNote": "O 2FA está ativado para esta chave. Você digitará um código do seu autenticador a cada login no painel.",
+      "disable": "Desativar 2FA",
+      "enterCodeToDisable": "Digite um código atual para desativar o 2FA",
+      "confirmDisable": "Desativar",
+      "disabledToast": "Autenticação de dois fatores desativada"
     }
   },
   "logs": {

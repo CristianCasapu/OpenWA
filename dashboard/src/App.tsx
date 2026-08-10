@@ -8,7 +8,7 @@ import { ToastProvider } from './components/Toast';
 import { useRole, type UserRole } from './hooks/useRole';
 import { RoleProvider } from './components/RoleProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { API_BASE_URL } from './services/api';
+import { API_BASE_URL, DASHBOARD_SESSION_STORAGE_KEY } from './services/api';
 import { clearActorState, resolveStartupValidation } from './utils/authLifecycle';
 import './App.css';
 
@@ -39,6 +39,9 @@ function AppContent() {
   const savedKey = sessionStorage.getItem('openwa_api_key');
   const [isAuthenticated, setIsAuthenticated] = useState(!!savedKey);
   const [, setApiKey] = useState(savedKey || '');
+  // When a saved key is valid but its 2FA session is missing/expired, we drop back to the login
+  // screen's CODE step with the key prefilled instead of forcing the operator to re-type it.
+  const [resumeKey, setResumeKey] = useState<string | null>(null);
   const { setRole, role } = useRole();
 
   const handleLogin = async (key: string) => {
@@ -68,6 +71,7 @@ function AppContent() {
     setIsAuthenticated(false);
     setRole(null);
     sessionStorage.removeItem('openwa_api_key');
+    sessionStorage.removeItem(DASHBOARD_SESSION_STORAGE_KEY);
     // Wipe the React Query cache too: it is keyed by resource, not actor, so without a full
     // clear a logout → login in the same tab with a different key/scope shows the previous
     // actor's sessions/messages/apiKeys/audit rows.
@@ -83,10 +87,24 @@ function AppContent() {
       headers: { 'X-API-Key': savedKey },
     })
       .then(async res => {
-        const decision = resolveStartupValidation(res.status, await res.json().catch(() => null));
+        const body = (await res.json().catch(() => null)) as {
+          valid?: boolean;
+          role?: string;
+          mfaRequired?: boolean;
+        } | null;
+        const decision = resolveStartupValidation(res.status, body);
         if (decision.action === 'logout') {
           handleLogout();
-        } else if (decision.action === 'role') {
+          return;
+        }
+        // 2FA: the key is valid but its post-TOTP session is missing/expired — resume at the code
+        // step (key kept) rather than eject the operator. The key alone cannot reach protected routes.
+        if (body?.mfaRequired && !sessionStorage.getItem(DASHBOARD_SESSION_STORAGE_KEY)) {
+          setResumeKey(savedKey);
+          setIsAuthenticated(false);
+          return;
+        }
+        if (decision.action === 'role') {
           setRole(decision.role);
         }
       })
@@ -105,7 +123,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <Suspense fallback={loadingFallback}>
-        <Login onLogin={handleLogin} />
+        <Login onLogin={handleLogin} resumeKey={resumeKey ?? undefined} />
       </Suspense>
     );
   }

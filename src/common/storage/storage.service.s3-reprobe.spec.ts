@@ -127,6 +127,31 @@ describe('StorageService S3 re-probe and recovery', () => {
     expect(svc.isS3Available()).toBe(true);
   });
 
+  it('keeps re-probing after a probe that throws synchronously (does not latch unavailable)', async () => {
+    mockSend.mockRejectedValue(s3Error('NetworkingError')); // boot probe fails
+    const svc = new StorageService(makeConfig());
+    warnSpyOf(svc);
+    await flush();
+    expect(svc.isS3Available()).toBe(false);
+
+    // A client in a broken state can throw synchronously from send() instead of returning a
+    // rejected promise. That runs an inline finally before the in-flight assignment completes, so
+    // a finally INSIDE the probe would be overwritten by an already-settled promise — and every
+    // later call would short-circuit on it, latching S3 unavailable for the process lifetime.
+    mockSend.mockImplementation(() => {
+      throw s3Error('SyncFailure');
+    });
+    await expect(svc.refreshS3Availability()).resolves.toBe(false);
+
+    // Past the throttle window, with S3 healthy again, a fresh probe must actually run.
+    mockSend.mockClear();
+    mockSend.mockResolvedValue({});
+    await jest.advanceTimersByTimeAsync(11_000);
+    await expect(svc.refreshS3Availability()).resolves.toBe(true);
+    expect(mockSend).toHaveBeenCalled();
+    expect(svc.isS3Available()).toBe(true);
+  });
+
   it('never transitions true→false: an S3-healthy boot ignores later transient probe failures', async () => {
     mockSend.mockResolvedValue({}); // boot probe succeeds
     const svc = new StorageService(makeConfig());

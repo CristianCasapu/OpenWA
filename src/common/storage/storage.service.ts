@@ -195,7 +195,7 @@ export class StorageService implements OnModuleDestroy {
     const now = Date.now();
     if (now - this.lastS3Check < 10_000) return this.s3Available;
     this.lastS3Check = now;
-    this.s3CheckInFlight = (async () => {
+    const probe = (async () => {
       try {
         await this.s3Client!.send(new HeadBucketCommand({ Bucket: this.s3Bucket }));
         this.s3Available = true;
@@ -208,10 +208,16 @@ export class StorageService implements OnModuleDestroy {
         );
       } catch {
         // still unreachable — leave s3Available false; a later poll retries after the throttle window
-      } finally {
-        this.s3CheckInFlight = null;
       }
     })();
+    // The in-flight reset rides a .finally() chained AFTER the assignment, never a finally block
+    // inside the IIFE: a synchronous throw from send() runs an inline finally before the assignment
+    // completes, so the assignment would overwrite the null with an already-settled promise and
+    // every later call would short-circuit on it — latching S3 unavailable for the process
+    // lifetime. A chained callback always runs in a microtask after the assignment is in place.
+    this.s3CheckInFlight = probe.finally(() => {
+      this.s3CheckInFlight = null;
+    });
     await this.s3CheckInFlight;
     return this.s3Available;
   }

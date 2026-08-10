@@ -324,9 +324,17 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
     // pre-initialize retirement race needs this mark visible to an in-flight start()'s
     // post-INITIALIZING check by the time that write settles; awaiting anything first — the fence's
     // COUNT, or delete()'s own requireSession — would let the mark land after that window. A mark
-    // left behind when the fence refuses (409) is harmless and is cleared by the next start().
+    // left behind by a fence refusal (409) is NOT harmless — executeReconnect early-returns on it,
+    // so auto-reconnect would stay silently disabled — hence the clear before rethrowing.
     this.engineLifecycle.markStopping(id);
-    if (this.ownership) await this.assertNotHeldElsewhere(id);
+    if (this.ownership) {
+      try {
+        await this.assertNotHeldElsewhere(id);
+      } catch (error) {
+        this.engineLifecycle.clearStoppingMark(id);
+        throw error;
+      }
+    }
     await this.engineLifecycle.delete(id);
     await this.ownership?.release(id);
   }
@@ -369,9 +377,17 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
   }
 
   async stop(id: string): Promise<Session> {
-    // Synchronous stop-mark before the awaited fence — see delete() for why.
+    // Synchronous stop-mark before the awaited fence, cleared again if the fence refuses — see
+    // delete() for why both halves matter.
     this.engineLifecycle.markStopping(id);
-    if (this.ownership) await this.assertNotHeldElsewhere(id);
+    if (this.ownership) {
+      try {
+        await this.assertNotHeldElsewhere(id);
+      } catch (error) {
+        this.engineLifecycle.clearStoppingMark(id);
+        throw error;
+      }
+    }
     const session = await this.engineLifecycle.stop(id);
     // Handed back on the way out so a peer can pick it up immediately rather than waiting for the
     // lease to lapse. Stop is the deliberate end of this process's ownership — but a start() that

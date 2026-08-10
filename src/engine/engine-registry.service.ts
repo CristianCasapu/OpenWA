@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { createLogger } from '../common/services/logger.service';
 import type { IWhatsAppEngine } from './interfaces/whatsapp-engine.interface';
 
 /**
@@ -21,6 +22,8 @@ export class EngineRegistry {
   /** Live engines by session (DB) id. Presence here means "started"; identity means "not superseded". */
   private readonly engines = new Map<string, IWhatsAppEngine>();
 
+  private readonly logger = createLogger('EngineRegistry');
+
   /**
    * Sessions whose engine is being constructed but is not in `engines` yet. Held so concurrency
    * accounting and the infra import pre-flight can see a session that is starting but not yet
@@ -39,6 +42,20 @@ export class EngineRegistry {
   }
 
   set(id: string, engine: IWhatsAppEngine): void {
+    // Registration must never silently supersede a live engine: every legitimate replace path
+    // (stop→start, reconnect) evicts the old engine first, so a different instance still being
+    // registered here means two initializations raced — two live connections to one account, with
+    // the loser never destroyed. The lifecycle reservations are what prevent that; this log is the
+    // tripwire that makes any future gap in them loud instead of silent. The write still happens —
+    // the registry stays a dumb port, and the newest engine is the one whose callbacks are live.
+    const existing = this.engines.get(id);
+    if (existing && existing !== engine) {
+      this.logger.error(
+        'Overwriting a live engine registration for a session — concurrent initializations raced',
+        undefined,
+        { sessionId: id, action: 'engine_registry_overwrite' },
+      );
+    }
     this.engines.set(id, engine);
   }
 

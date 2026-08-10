@@ -11,7 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Equal, IsNull, MoreThan, Not, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { ipMatches } from '../../common/utils/ip';
-import { hashApiKey } from './api-key-hash';
+import { hashApiKey, hashApiKeyCandidates } from './api-key-hash';
 import { ApiKey, ApiKeyRole } from './entities/api-key.entity';
 import { CreateApiKeyDto, UpdateApiKeyDto } from './dto';
 import { createLogger } from '../../common/services/logger.service';
@@ -137,7 +137,9 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   private async readLiveBootstrapKey(): Promise<string | null> {
     const rawKey = readBootstrapKey(this.logger);
     if (!rawKey) return null;
-    const stored = await this.apiKeyRepository.findOne({ where: { keyHash: this.hashKey(rawKey) } });
+    // Candidate lookup so a bootstrap key still stored under the legacy SHA-256 hash (pepper enabled
+    // after it was seeded) resolves cleanly instead of falling through to the prefix-mismatch warning.
+    const stored = (await this.findApiKeyByRawKey(rawKey))?.apiKey ?? null;
     const live = Boolean(stored && stored.isActive && (!stored.expiresAt || stored.expiresAt > new Date()));
     if (live) return rawKey;
     if (!stored) {
@@ -418,11 +420,25 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     // authenticates over REST but fails on the WebSocket handshake (the CONNECT payload carries the
     // literal string) — the dashboard then runs commands fine while never receiving events, and the
     // session looks permanently disconnected. Whitespace is never part of a key.
-    const keyHash = this.hashKey(rawKey?.trim());
-    const apiKey = await this.apiKeyRepository.findOne({ where: { keyHash } });
-
-    if (!apiKey) {
+    const match = await this.findApiKeyByRawKey(rawKey?.trim() ?? '');
+    if (!match) {
       throw new UnauthorizedException('Invalid API key');
+    }
+    const apiKey = match.apiKey;
+    // Legacy SHA-256 row matched while a pepper is now active: upgrade the stored hash to HMAC in
+    // place so a later DB leak can't precompute it. Best-effort — a write failure must never turn a
+    // valid key into a rejected one, so it is logged and the request proceeds.
+    if (match.upgradeTo) {
+      try {
+        await this.apiKeyRepository.update(apiKey.id, { keyHash: match.upgradeTo });
+        apiKey.keyHash = match.upgradeTo;
+      } catch (error) {
+        this.logger.warn('Failed to upgrade a legacy API-key hash to HMAC (will retry on next use)', {
+          keyId: apiKey.id,
+          action: 'api_key_hash_upgrade_failed',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     if (!apiKey.isActive) {
@@ -463,6 +479,25 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
   private hashKey(rawKey: string): string {
     return hashApiKey(rawKey, process.env.API_KEY_PEPPER);
+  }
+
+  /**
+   * Look up an API key by its raw value, tolerating a hash format upgrade. Rows created before a
+   * pepper was enabled are stored as plain SHA-256; with a pepper now active the current format is
+   * HMAC. Try the peppered hash first, then the legacy one, so an un-upgraded key still resolves.
+   * `upgradeTo` is set (to the peppered hash) only when a LEGACY row matched, telling the caller to
+   * rehash it in place. Returns null when no candidate matches.
+   */
+  private async findApiKeyByRawKey(rawKey: string): Promise<{ apiKey: ApiKey; upgradeTo?: string } | null> {
+    const candidates = hashApiKeyCandidates(rawKey, process.env.API_KEY_PEPPER);
+    for (let i = 0; i < candidates.length; i++) {
+      const found = await this.apiKeyRepository.findOne({ where: { keyHash: candidates[i] } });
+      if (found) {
+        // i > 0 means it matched a non-primary (legacy SHA-256) candidate while a pepper is active.
+        return i === 0 ? { apiKey: found } : { apiKey: found, upgradeTo: candidates[0] };
+      }
+    }
+    return null;
   }
 
   private isIpAllowed(clientIp: string, allowedIps: string[]): boolean {

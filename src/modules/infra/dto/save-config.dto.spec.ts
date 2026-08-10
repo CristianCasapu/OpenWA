@@ -18,7 +18,10 @@ async function run(payload: unknown) {
 }
 
 // Every boolean field on the save-config DTO, with the section keys its parent requires.
-const BOOLEAN_FIELDS: Array<{ section: 'database' | 'redis' | 'queue' | 'storage' | 'engine'; field: string }> = [
+const BOOLEAN_FIELDS: Array<{
+  section: 'database' | 'redis' | 'queue' | 'storage' | 'engine' | 'fail2ban';
+  field: string;
+}> = [
   { section: 'database', field: 'builtIn' },
   { section: 'database', field: 'sslEnabled' },
   { section: 'database', field: 'sslRejectUnauthorized' },
@@ -27,6 +30,7 @@ const BOOLEAN_FIELDS: Array<{ section: 'database' | 'redis' | 'queue' | 'storage
   { section: 'queue', field: 'enabled' },
   { section: 'storage', field: 'builtIn' },
   { section: 'engine', field: 'headless' },
+  { section: 'fail2ban', field: 'enabled' },
 ];
 
 const SECTION_BASE: Record<string, Record<string, unknown>> = {
@@ -35,6 +39,7 @@ const SECTION_BASE: Record<string, Record<string, unknown>> = {
   queue: {},
   storage: { type: 'local' },
   engine: {},
+  fail2ban: {},
 };
 
 describe('SaveConfigDto strict coercion', () => {
@@ -86,5 +91,16 @@ describe('SaveConfigDto strict coercion', () => {
     const { instance, errors } = await run({ database: { type: 'postgres', poolSize: '25' } });
     expect(errors).toHaveLength(0);
     expect(instance.database?.poolSize).toBe(25);
+  });
+
+  it('maps the fail2ban numeric knobs (form-encoded strings) to real numbers', async () => {
+    const { instance, errors } = await run({
+      fail2ban: { enabled: 'true', maxretry: '3', findtime: '900', bantime: '43200' },
+    });
+    expect(errors).toHaveLength(0);
+    expect(instance.fail2ban?.enabled).toBe(true);
+    expect(instance.fail2ban?.maxretry).toBe(3);
+    expect(instance.fail2ban?.findtime).toBe(900);
+    expect(instance.fail2ban?.bantime).toBe(43200);
   });
 });

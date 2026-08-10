@@ -13,6 +13,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { SecurityEventLogService } from '../../common/security/security-event-log.service';
 import { resolveCorsPolicy } from '../../config/bootstrap-security';
 import {
   resolveClientIp as resolveRequestClientIp,
@@ -133,6 +134,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   constructor(
     private readonly authService: AuthService,
     private readonly auditService: AuditService,
+    private readonly securityLog: SecurityEventLogService,
   ) {
     this.rateLimits = readWsRateLimitConfig();
     this.frameLimiter = new TokenBucketLimiter(this.rateLimits.framePerSecond, this.rateLimits.frameBurst);
@@ -253,6 +255,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         metadata: { surface: 'websocket' },
         errorMessage: 'missing API key',
       });
+      this.securityLog.logWrongApiKey('ws', clientIp);
       client.emit('message', this.createError('UNAUTHORIZED', 'API key required'));
       client.disconnect();
       return;
@@ -308,6 +311,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         metadata: { surface: 'websocket' },
         errorMessage: error instanceof Error ? error.message : String(error),
       });
+      this.securityLog.logWrongApiKey('ws', clientIp);
       client.emit('message', this.createError('UNAUTHORIZED', 'Authentication failed'));
       client.disconnect();
     }
@@ -319,7 +323,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('message')
-  handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
     // Per-key token bucket on every inbound frame. Keyed by the validated key id; a socket
     // whose handshake validation is still in flight has no key yet and is metered by IP.
     // Over-budget frames get an error frame back and are NOT dispatched to a handler — in
@@ -337,6 +341,22 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return error;
     }
 
+    const response = await this.dispatchMessage(client, message);
+    // Deliver the frame explicitly: Nest's IoAdapter forwards a @SubscribeMessage return value
+    // only when the client passed an ack callback or the response carries an `event` key. These
+    // frames carry `type` and the dashboard emits WITHOUT an ack, so without this emit no
+    // subscribe ack, pong, or error frame ever reached it — in particular the FORBIDDEN_SESSION
+    // error a session-scoped key's feed relies on to fall back from a '*' subscription (its QR
+    // flow sat on "generating" forever). The UNAUTHORIZED path emits and then disconnects inside
+    // the handler, so the connected guard keeps this from double-sending that one frame. The
+    // response is still returned for any client that does pass an ack.
+    if (response && client.connected) {
+      client.emit('message', response);
+    }
+    return response;
+  }
+
+  private dispatchMessage(client: Socket, message: WSClientMessage) {
     switch (message.type) {
       case 'subscribe':
         return this.handleSubscribe(client, message);
@@ -345,6 +365,9 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       case 'ping':
         return this.handlePing(client, message.requestId);
       default:
+        // Unknown frame type on an (already authenticated) socket — a malformed request over the WS
+        // surface. Emit the fail2ban `invalid_request` line so probing this surface is bannable too.
+        this.securityLog.logInvalidRequest('ws', this.resolveClientIp(client));
         return this.createError(
           'INVALID_MESSAGE',
           `Unknown message type`,

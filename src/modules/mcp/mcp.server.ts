@@ -14,6 +14,7 @@ import { AuditAction } from '../audit/entities/audit-log.entity';
 import { handleToolError, jsonToolResult, smartToolResult } from './tool-result';
 import type { KeyRateLimiter } from './mcp-rate-limit';
 import { resolveClientIp, cfConnectingIpTrusted } from '../../common/utils/ip';
+import type { SecurityEventLogService } from '../../common/security/security-event-log.service';
 
 const logger = new Logger('McpServer');
 
@@ -65,6 +66,22 @@ export function auditMcpAuthFailure(
   }
 }
 
+/**
+ * Emit the fail2ban `wrong_api_key` security line for an MCP auth failure, mirroring
+ * `auditMcpAuthFailure`'s 401/403 filter so only genuine credential rejections are counted (a 400 for
+ * bad tool input is an `invalid_request`, emitted separately on the validation path). Best-effort.
+ */
+export function emitMcpAuthSecurity(
+  securityLog: Pick<SecurityEventLogService, 'logWrongApiKey'> | undefined,
+  error: unknown,
+  ip: string | undefined,
+): void {
+  if (!securityLog) return;
+  if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
+    securityLog.logWrongApiKey('mcp', ip);
+  }
+}
+
 /** Read TRUSTED_PROXIES once as a list (shared by the pre-auth throttle and the audit IP resolver). */
 function readTrustedProxies(): string[] {
   return (process.env.TRUSTED_PROXIES ?? '')
@@ -97,6 +114,7 @@ function buildServer(
   serverInfo: { name: string; version: string },
   auditService: AuditService | undefined,
   reqContext: McpRequestContext,
+  securityLog: SecurityEventLogService | undefined,
 ): McpServer {
   const server = new McpServer(
     { name: serverInfo.name, version: serverInfo.version },
@@ -132,7 +150,13 @@ function buildServer(
             // only) at the auth boundary so the audit trail covers MCP credential probing. Fires inside
             // invokeTool's auth phase (before the tool handler), so handler-thrown 403s are NOT mislabeled
             // as auth failures. Best-effort; success and non-auth errors skip this.
-            error => auditMcpAuthFailure(auditService, error, reqContext),
+            error => {
+              auditMcpAuthFailure(auditService, error, reqContext);
+              emitMcpAuthSecurity(securityLog, error, reqContext.ipAddress);
+            },
+            // onInvalidInput: the tool's own schema rejected the arguments — a malformed request over
+            // the MCP surface. Emit the fail2ban `invalid_request` line (never a `wrong_api_key`).
+            () => securityLog?.logInvalidRequest('mcp', reqContext.ipAddress),
           );
           return tool.resultDisposition === 'json'
             ? jsonToolResult(result as object)
@@ -207,6 +231,7 @@ export function mountMcpServer(
   ipRateLimiter: KeyRateLimiter,
   options: MountMcpServerOptions = {},
   auditService?: AuditService,
+  securityLog?: SecurityEventLogService,
 ): void {
   const basePath = (options.basePath ?? '/mcp').replace(/\/$/, '') || '/mcp';
   const serverInfo = options.serverInfo ?? { name: 'openwa', version: '0.0.0' };
@@ -227,6 +252,7 @@ export function mountMcpServer(
       serverInfo,
       auditService,
       resolveReqContext(req),
+      securityLog,
     );
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     try {

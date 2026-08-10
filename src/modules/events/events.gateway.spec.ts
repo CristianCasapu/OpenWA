@@ -4,7 +4,14 @@ import { EventsGateway, isSessionSubscriptionAllowed } from './events.gateway';
 import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { SecurityEventLogService } from '../../common/security/security-event-log.service';
 import { SUBSCRIBABLE_EVENTS, buildRoomName } from './dto/ws-messages.dto';
+
+/** A no-op SecurityEventLogService double: the two emit methods, spied. */
+const makeSecurityLogMock = (): jest.Mocked<Pick<SecurityEventLogService, 'logWrongApiKey' | 'logInvalidRequest'>> => ({
+  logWrongApiKey: jest.fn(),
+  logInvalidRequest: jest.fn(),
+});
 import type { WSClientMessage, WSErrorResponse, WSSubscribedResponse, WSEventMessage } from './dto/ws-messages.dto';
 import { WEBHOOK_RESERVED_EVENTS } from '../webhook/dto/webhook.dto';
 
@@ -40,6 +47,8 @@ interface MockSocket {
     address: string;
   };
   data: Record<string, unknown>;
+  /** Mirrors socket.io: true until disconnect() runs — the frame-delivery guard reads it. */
+  connected: boolean;
   emit: jest.Mock;
   disconnect: jest.Mock;
   join: jest.Mock;
@@ -50,25 +59,39 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
   let gateway: EventsGateway;
   let authService: { validateApiKey: jest.Mock };
 
-  const makeSocket = (auth: { apiKey?: string } = {}): MockSocket => ({
-    id: 'sock-1',
-    handshake: { headers: {}, query: {}, auth, address: '203.0.113.5' },
-    data: {},
-    emit: jest.fn(),
-    disconnect: jest.fn(),
-    join: jest.fn(),
-    rooms: new Set<string>(),
-  });
+  const makeSocket = (auth: { apiKey?: string } = {}): MockSocket => {
+    const sock: MockSocket = {
+      id: 'sock-1',
+      handshake: { headers: {}, query: {}, auth, address: '203.0.113.5' },
+      data: {},
+      connected: true,
+      emit: jest.fn(),
+      // Real socket.io flips connected synchronously inside disconnect(); the frame-delivery
+      // guard depends on that to avoid double-sending the UNAUTHORIZED frame.
+      disconnect: jest.fn(() => {
+        sock.connected = false;
+      }),
+      join: jest.fn(),
+      rooms: new Set<string>(),
+    };
+    return sock;
+  };
   const asSocket = (s: MockSocket): Socket => s as unknown as Socket;
   const subscribeMsg = (sessionId: string, events: string[]): WSClientMessage =>
     ({ type: 'subscribe', sessionId, events, requestId: 'r1' }) as unknown as WSClientMessage;
 
   let auditService: { logWarn: jest.Mock };
+  let securityLog: ReturnType<typeof makeSecurityLogMock>;
 
   beforeEach(() => {
     authService = { validateApiKey: jest.fn() };
     auditService = { logWarn: jest.fn().mockResolvedValue(null) };
-    gateway = new EventsGateway(authService as unknown as AuthService, auditService as unknown as AuditService);
+    securityLog = makeSecurityLogMock();
+    gateway = new EventsGateway(
+      authService as unknown as AuthService,
+      auditService as unknown as AuditService,
+      securityLog as unknown as SecurityEventLogService,
+    );
   });
 
   it('rejects a connection with no API key (and never calls validate)', async () => {
@@ -76,6 +99,8 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     await gateway.handleConnection(asSocket(sock));
     expect(sock.disconnect).toHaveBeenCalled();
     expect(authService.validateApiKey).not.toHaveBeenCalled();
+    // A missing key over the WS surface emits the fail2ban wrong_api_key line with the resolved IP.
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('ws', '203.0.113.5');
   });
 
   it('does NOT accept the API key from the query string (credential must not travel in the URL)', async () => {
@@ -101,6 +126,22 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     const sock = makeSocket({ apiKey: 'bad' });
     await gateway.handleConnection(asSocket(sock));
     expect(sock.disconnect).toHaveBeenCalled();
+    // A rejected key over the WS surface emits the fail2ban wrong_api_key line too.
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('ws', '203.0.113.5');
+  });
+
+  it('emits an invalid_request security line on an unknown WS frame type', async () => {
+    authService.validateApiKey.mockResolvedValue({ id: 'k1', name: 'k', allowedSessions: null });
+    const sock = makeSocket({ apiKey: 'good' });
+    await gateway.handleConnection(asSocket(sock));
+
+    const res = (await gateway.handleMessage(asSocket(sock), {
+      type: 'bogus',
+      requestId: 'r9',
+    } as unknown as WSClientMessage)) as WSErrorResponse;
+
+    expect(res.code).toBe('INVALID_MESSAGE');
+    expect(securityLog.logInvalidRequest).toHaveBeenCalledWith('ws', '203.0.113.5');
   });
 
   it('accepts a valid key via handshake.auth and stores the raw key for re-validation', async () => {
@@ -180,6 +221,88 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     expect(res.type).toBe('subscribed');
     expect(res.events).toEqual(['message.received']);
     expect(sock.join).toHaveBeenCalledWith(buildRoomName('sess-1', 'message.received'));
+  });
+
+  // Frame delivery to ack-less clients. Nest's IoAdapter forwards a @SubscribeMessage return value
+  // only when the client passed an ack callback or the response carries an `event` key — these
+  // frames carry `type`, and the dashboard emits WITHOUT an ack, so the return values asserted
+  // elsewhere in this file never reach the wire on their own. Each path must emit explicitly; these
+  // pin that, because return-value assertions alone are a circular oracle this exact bug hid behind.
+  describe('response frames are emitted to ack-less clients', () => {
+    const connect = async (allowedSessions: string[] | null = null): Promise<MockSocket> => {
+      authService.validateApiKey.mockResolvedValue({ name: 'k', allowedSessions });
+      const sock = makeSocket({ apiKey: 'good' });
+      await gateway.handleConnection(asSocket(sock));
+      sock.emit.mockClear();
+      return sock;
+    };
+
+    it('emits the subscribed ack', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), subscribeMsg('sess-1', ['session.status']));
+      expect(sock.emit).toHaveBeenCalledWith(
+        'message',
+        expect.objectContaining({ type: 'subscribed', sessionId: 'sess-1', requestId: 'r1' }),
+      );
+    });
+
+    it('emits FORBIDDEN_SESSION — the frame the scoped-key session feed falls back on', async () => {
+      const sock = await connect(['sess-1']);
+      await gateway.handleMessage(asSocket(sock), subscribeMsg('*', ['session.status']));
+      expect(sock.emit).toHaveBeenCalledWith(
+        'message',
+        expect.objectContaining({ type: 'error', code: 'FORBIDDEN_SESSION' }),
+      );
+    });
+
+    it('emits INVALID_SESSION when sessionId is missing', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), {
+        type: 'subscribe',
+        events: ['*'],
+        requestId: 'r1',
+      } as unknown as WSClientMessage);
+      expect(sock.emit).toHaveBeenCalledWith('message', expect.objectContaining({ code: 'INVALID_SESSION' }));
+    });
+
+    it('emits INVALID_EVENTS when no requested event is subscribable', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), subscribeMsg('sess-1', ['no.such.event']));
+      expect(sock.emit).toHaveBeenCalledWith('message', expect.objectContaining({ code: 'INVALID_EVENTS' }));
+    });
+
+    it('emits the unsubscribed ack', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), {
+        type: 'unsubscribe',
+        sessionId: 'sess-1',
+        requestId: 'r1',
+      } as unknown as WSClientMessage);
+      expect(sock.emit).toHaveBeenCalledWith('message', expect.objectContaining({ type: 'unsubscribed' }));
+    });
+
+    it('emits pong — the ping/pong protocol is not inert', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), { type: 'ping', requestId: 'r1' } as unknown as WSClientMessage);
+      expect(sock.emit).toHaveBeenCalledWith('message', expect.objectContaining({ type: 'pong', requestId: 'r1' }));
+    });
+
+    it('emits INVALID_MESSAGE for an unknown frame type', async () => {
+      const sock = await connect();
+      await gateway.handleMessage(asSocket(sock), { type: 'nonsense' } as unknown as WSClientMessage);
+      expect(sock.emit).toHaveBeenCalledWith('message', expect.objectContaining({ code: 'INVALID_MESSAGE' }));
+    });
+
+    it('emits the UNAUTHORIZED frame exactly once (the handler already emits before disconnecting)', async () => {
+      const sock = await connect();
+      authService.validateApiKey.mockResolvedValueOnce(null); // revoked on the subscribe re-check
+      await gateway.handleMessage(asSocket(sock), subscribeMsg('sess-1', ['*']));
+      const unauthorizedFrames = sock.emit.mock.calls.filter(
+        ([, frame]) => (frame as { code?: string }).code === 'UNAUTHORIZED',
+      );
+      expect(unauthorizedFrames).toHaveLength(1);
+      expect(sock.disconnect).toHaveBeenCalled();
+    });
   });
 
   // Cross-tenant guard (#221): a session-scoped key must not subscribe to a foreign session or '*'.
@@ -384,6 +507,7 @@ describe('EventsGateway.emitToRooms fan-out', () => {
     new EventsGateway(
       { validateApiKey: jest.fn() } as unknown as AuthService,
       { logWarn: jest.fn().mockResolvedValue(null) } as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
     );
 
   it('delivers one event with a single broadcast across all four rooms (no per-room duplicate emit)', () => {
@@ -420,6 +544,7 @@ describe('event catalog ⇔ emitter invariants (drift guard)', () => {
     const gateway = new EventsGateway(
       { validateApiKey: jest.fn() } as unknown as AuthService,
       { logWarn: jest.fn().mockResolvedValue(null) } as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
     );
     const captured: string[] = [];
     const op: { to: () => unknown; emit: (ch: string, msg: WSEventMessage) => boolean } = {
@@ -470,15 +595,21 @@ describe('EventsGateway rate limiting', () => {
   let auditService: { logWarn: jest.Mock };
   let savedEnv: Record<string, string | undefined>;
 
-  const makeSock = (id: string, auth: { apiKey?: string } = {}): MockSocket => ({
-    id,
-    handshake: { headers: {}, query: {}, auth, address: '203.0.113.5' },
-    data: {},
-    emit: jest.fn(),
-    disconnect: jest.fn(),
-    join: jest.fn(),
-    rooms: new Set<string>(),
-  });
+  const makeSock = (id: string, auth: { apiKey?: string } = {}): MockSocket => {
+    const sock: MockSocket = {
+      id,
+      handshake: { headers: {}, query: {}, auth, address: '203.0.113.5' },
+      data: {},
+      connected: true,
+      emit: jest.fn(),
+      disconnect: jest.fn(() => {
+        sock.connected = false;
+      }),
+      join: jest.fn(),
+      rooms: new Set<string>(),
+    };
+    return sock;
+  };
   const asSocket = (s: MockSocket): Socket => s as unknown as Socket;
   const subscribeMsg = (sessionId: string, events: string[]): WSClientMessage =>
     ({ type: 'subscribe', sessionId, events, requestId: 'r1' }) as unknown as WSClientMessage;
@@ -502,7 +633,11 @@ describe('EventsGateway rate limiting', () => {
   });
 
   const buildGateway = (): EventsGateway => {
-    gateway = new EventsGateway(authService as unknown as AuthService, auditService as unknown as AuditService);
+    gateway = new EventsGateway(
+      authService as unknown as AuthService,
+      auditService as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
+    );
     return gateway;
   };
 

@@ -757,7 +757,8 @@
     "statusLabels": {
       "connected": "מחובר",
       "disconnected": "מנותק",
-      "disabled": "מושבת"
+      "disabled": "מושבת",
+      "enabled": "מופעל"
     },
     "restart": {
       "idleTitle": "⚙️ התצורה נשמרה",
@@ -798,7 +799,26 @@
       "invalidFile": "הקובץ הזה אינו גיבוי נתונים תקין של OpenWA.",
       "importTooLarge": "הגיבוי גדול מדי עבור מגבלת הבקשה. הגדילו את BODY_SIZE_LIMIT בשרת ונסו שוב."
     },
-    "statusLoadError": "לא ניתן לטעון את מצב התשתית הנוכחי. רעננו כדי לנסות שוב."
+    "statusLoadError": "לא ניתן לטעון את מצב התשתית הנוכחי. רעננו כדי לנסות שוב.",
+    "fail2ban": {
+      "title": "מניעת חדירות (fail2ban)",
+      "description": "חסימת כתובות IP ששולחות שוב ושוב מפתח API שגוי או בקשות פגומות. OpenWA מייצר את המסנן וה-jail של fail2ban; שירות fail2ban במארח חייב לכלול אותם כדי לאכוף חסימות.",
+      "enable": "הפעלת jail של fail2ban",
+      "enableDesc": "מייצר את ה-jail כמופעל. ה-fail2ban של המארח עדיין צריך לכלול את הקבצים שנוצרו.",
+      "maxretry": "מספר ניסיונות מרבי",
+      "maxretryDesc": "מספר הכשלים בתוך החלון לפני חסימת כתובת IP.",
+      "findtime": "חלון זיהוי (שניות)",
+      "findtimeDesc": "חלון נע שבו נספרים הכשלים.",
+      "bantime": "משך החסימה (שניות)",
+      "bantimeDesc": "למשך כמה זמן כתובת IP חסומה מושלכת. ברירת מחדל 86400 (24 שעות).",
+      "bannedCount": "{{count}} כתובות IP חסומות כעת",
+      "updatedAt": "עודכן {{time}}",
+      "noStatusFile": "עדיין אין סטטוס מהמארח",
+      "hostNote": "OpenWA אינו יכול להריץ את fail2ban בעצמו. התקן fail2ban במארח, כלול את הקבצים שנוצרו וטען מחדש את fail2ban.",
+      "snippetCopied": "פקודות הגדרת המארח הועתקו",
+      "copySnippet": "העתקת הגדרת המארח",
+      "docs": "מדריך הגדרה"
+    }
   },
   "plugins": {
     "title": "תוספים",

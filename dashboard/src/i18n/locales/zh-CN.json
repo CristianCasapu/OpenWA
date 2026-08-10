@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "已连接",
       "disconnected": "已断开",
-      "disabled": "已禁用"
+      "disabled": "已禁用",
+      "enabled": "已启用"
     },
     "restart": {
       "idleTitle": "⚙️ 配置已保存",
@@ -789,7 +790,26 @@
       "invalidFile": "该文件不是有效的 OpenWA 数据备份。",
       "importTooLarge": "备份超出请求大小限制。请在服务器上调高 BODY_SIZE_LIMIT 后重试。"
     },
-    "statusLoadError": "无法加载当前基础设施状态。请刷新重试。"
+    "statusLoadError": "无法加载当前基础设施状态。请刷新重试。",
+    "fail2ban": {
+      "title": "入侵防护（fail2ban）",
+      "description": "封禁反复发送错误 API 密钥或畸形请求的 IP。OpenWA 生成 fail2ban 的过滤器和监狱（jail）；主机上的 fail2ban 服务必须引入它们才能执行封禁。",
+      "enable": "启用 fail2ban 监狱",
+      "enableDesc": "将监狱生成为已启用。主机的 fail2ban 仍需引入生成的文件。",
+      "maxretry": "最大重试次数",
+      "maxretryDesc": "在时间窗口内达到多少次失败后封禁 IP。",
+      "findtime": "检测窗口（秒）",
+      "findtimeDesc": "统计失败次数的滑动时间窗口。",
+      "bantime": "封禁时长（秒）",
+      "bantimeDesc": "被封禁 IP 被丢弃的时长。默认 86400（24 小时）。",
+      "bannedCount": "当前封禁 {{count}} 个 IP",
+      "updatedAt": "更新于 {{time}}",
+      "noStatusFile": "尚无主机状态",
+      "hostNote": "OpenWA 无法自行运行 fail2ban。请在主机上安装 fail2ban，引入生成的文件，然后重新加载 fail2ban。",
+      "snippetCopied": "已复制主机配置命令",
+      "copySnippet": "复制主机配置",
+      "docs": "配置指南"
+    }
   },
   "plugins": {
     "title": "插件",

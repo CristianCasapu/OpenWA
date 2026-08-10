@@ -3,6 +3,7 @@ import { InfraStatusController } from './infra-status.controller';
 import { InfraConfigController } from './infra-config.controller';
 import { InfraDataController } from './infra-data.controller';
 import { InfraStorageController } from './infra-storage.controller';
+import { Fail2banConfigService } from './fail2ban-config.service';
 import { EngineModule } from '../../engine/engine.module';
 import { DockerModule } from '../docker';
 import { SessionModule } from '../session/session.module';
@@ -21,5 +22,6 @@ if (process.env.QUEUE_ENABLED === 'true') {
   // orphan check. Its own imports (WebhookModule, StatusStoreModule) never point back here — no cycle.
   imports: [EngineModule, DockerModule, SessionModule, ...queueModules],
   controllers: [InfraStatusController, InfraConfigController, InfraDataController, InfraStorageController],
+  providers: [Fail2banConfigService],
 })
 export class InfraModule {}

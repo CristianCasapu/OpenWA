@@ -1,7 +1,13 @@
 import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { auditMcpAuthFailure, createIpThrottle, mountMcpServer, resolveMcpReadOnly } from './mcp.server';
+import {
+  auditMcpAuthFailure,
+  createIpThrottle,
+  emitMcpAuthSecurity,
+  mountMcpServer,
+  resolveMcpReadOnly,
+} from './mcp.server';
 import { KeyRateLimiter } from './mcp-rate-limit';
 import { AuditAction } from '../audit/entities/audit-log.entity';
 import type { AnyToolDescriptor } from '../../core/agent-tools/tool-descriptor';
@@ -169,6 +175,36 @@ describe('auditMcpAuthFailure (MCP auth-failure audit trail, mirrors REST ApiKey
     // a non-401/403 throw to confirm the success-equivalent (no auth failure) is not audited.
     auditMcpAuthFailure(auditService, new BadRequestException('not an auth failure'), reqContext);
     expect(auditService.logWarn).not.toHaveBeenCalled();
+  });
+});
+
+// emitMcpAuthSecurity is the fail2ban sibling of auditMcpAuthFailure: it emits a wrong_api_key line on
+// a 401/403 (a genuine credential rejection) and stays silent on anything else. A bad-input 400 is an
+// invalid_request, emitted on the separate validation path — never here.
+describe('emitMcpAuthSecurity (MCP fail2ban wrong_api_key emission)', () => {
+  let securityLog: { logWrongApiKey: jest.Mock };
+
+  beforeEach(() => {
+    securityLog = { logWrongApiKey: jest.fn() };
+  });
+
+  it('emits wrong_api_key(mcp, ip) on an UnauthorizedException', () => {
+    emitMcpAuthSecurity(securityLog, new UnauthorizedException('Missing API key'), '203.0.113.7');
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('mcp', '203.0.113.7');
+  });
+
+  it('emits on a ForbiddenException (wrong role / scope)', () => {
+    emitMcpAuthSecurity(securityLog, new ForbiddenException('API key lacks the required role'), '203.0.113.7');
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT emit on a non-auth error (bad input BadRequest → invalid_request path instead)', () => {
+    emitMcpAuthSecurity(securityLog, new BadRequestException('sessionId is required'), '203.0.113.7');
+    expect(securityLog.logWrongApiKey).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when the security log is unavailable (mount without DI)', () => {
+    expect(() => emitMcpAuthSecurity(undefined, new UnauthorizedException('x'), '203.0.113.7')).not.toThrow();
   });
 });
 

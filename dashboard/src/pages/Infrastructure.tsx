@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Download,
   Upload,
+  ShieldAlert,
+  Copy,
 } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { copyToClipboard } from '../utils/clipboard';
@@ -36,6 +38,17 @@ interface QueueStats {
   completed: number;
   failed: number;
 }
+
+// The one-time host setup that wires the app-generated fail2ban filter/jail into the host's fail2ban.
+// The app cannot do this itself (unprivileged container); see docs/31-fail2ban.md for the full guide.
+const FAIL2BAN_INCLUDE_SNIPPET = [
+  '# Run on the HOST (as root). Point <DATA> at the mounted OpenWA data volume.',
+  'ln -sf <DATA>/fail2ban/filter.d/openwa.conf /etc/fail2ban/filter.d/openwa.conf',
+  'ln -sf <DATA>/fail2ban/jail.d/openwa.local  /etc/fail2ban/jail.d/openwa.local',
+  'systemctl reload fail2ban',
+].join('\n');
+const FAIL2BAN_DOCS_URL =
+  'https://github.com/CristianCasapu/OpenWA/blob/main/docs/31-fail2ban.md';
 
 export function Infrastructure() {
   const { t } = useTranslation();
@@ -748,6 +761,106 @@ export function Infrastructure() {
                 )}
               </>
             )}
+          </div>
+        </section>
+
+        {/* Intrusion Prevention (fail2ban) */}
+        <section className="infra-card">
+          <div className="card-header">
+            <div className="header-left">
+              <ShieldAlert size={20} />
+              <h2>{t('infrastructure.fail2ban.title')}</h2>
+            </div>
+            <span
+              className={`status-indicator ${configForm.fail2banConfig.enabled ? 'connected' : 'disconnected'}`}
+            >
+              ●{' '}
+              {configForm.fail2banConfig.enabled
+                ? t('infrastructure.statusLabels.enabled')
+                : t('infrastructure.statusLabels.disabled')}
+            </span>
+          </div>
+
+          <p className="muted-hint">{t('infrastructure.fail2ban.description')}</p>
+
+          <div className="config-form">
+            <div className="toggle-row">
+              <div className="toggle-info">
+                <span>{t('infrastructure.fail2ban.enable')}</span>
+                <small>{t('infrastructure.fail2ban.enableDesc')}</small>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={configForm.fail2banConfig.enabled}
+                  onChange={e => configForm.updateFail2banConfig('enabled', e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label>{t('infrastructure.fail2ban.maxretry')}</label>
+              <input
+                type="number"
+                min={1}
+                value={configForm.fail2banConfig.maxretry}
+                onChange={e => configForm.updateFail2banConfig('maxretry', parseInt(e.target.value, 10) || 1)}
+              />
+              <small>{t('infrastructure.fail2ban.maxretryDesc')}</small>
+            </div>
+
+            <div className="form-group">
+              <label>{t('infrastructure.fail2ban.findtime')}</label>
+              <input
+                type="number"
+                min={1}
+                value={configForm.fail2banConfig.findtime}
+                onChange={e => configForm.updateFail2banConfig('findtime', parseInt(e.target.value, 10) || 1)}
+              />
+              <small>{t('infrastructure.fail2ban.findtimeDesc')}</small>
+            </div>
+
+            <div className="form-group">
+              <label>{t('infrastructure.fail2ban.bantime')}</label>
+              <input
+                type="number"
+                min={1}
+                value={configForm.fail2banConfig.bantime}
+                onChange={e => configForm.updateFail2banConfig('bantime', parseInt(e.target.value, 10) || 1)}
+              />
+              <small>{t('infrastructure.fail2ban.bantimeDesc')}</small>
+            </div>
+          </div>
+
+          {infraStatus.fail2ban && (
+            <p className="muted-hint">
+              {t('infrastructure.fail2ban.bannedCount', { count: infraStatus.fail2ban.bannedCount })}
+              {infraStatus.fail2ban.updatedAt
+                ? ` · ${t('infrastructure.fail2ban.updatedAt', {
+                    time: new Date(infraStatus.fail2ban.updatedAt).toLocaleString(),
+                  })}`
+                : ` · ${t('infrastructure.fail2ban.noStatusFile')}`}
+            </p>
+          )}
+
+          <div className="empty-state-note">
+            <AlertTriangle size={14} /> {t('infrastructure.fail2ban.hostNote')}
+          </div>
+          <div className="infra-inline-actions">
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => {
+                void copyToClipboard(FAIL2BAN_INCLUDE_SNIPPET).then(ok => {
+                  if (ok) toast.success(t('infrastructure.fail2ban.snippetCopied'));
+                });
+              }}
+            >
+              <Copy size={14} /> {t('infrastructure.fail2ban.copySnippet')}
+            </button>
+            <a className="btn-secondary btn-sm" href={FAIL2BAN_DOCS_URL} target="_blank" rel="noreferrer">
+              <ExternalLink size={14} /> {t('infrastructure.fail2ban.docs')}
+            </a>
           </div>
         </section>
       </div>

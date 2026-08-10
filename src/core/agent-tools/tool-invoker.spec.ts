@@ -185,4 +185,77 @@ describe('invokeTool', () => {
       );
     });
   });
+
+  // onInvalidInput: fires ONLY when the tool's own schema rejects the arguments — the fail2ban
+  // invalid_request signal for the MCP surface. Distinct from onAuthFailure (auth phase) and from a
+  // handler-thrown error (business logic).
+  describe('onInvalidInput callback (MCP invalid-request boundary)', () => {
+    it('is invoked with the BadRequest when the input schema rejects the arguments', async () => {
+      const onInvalidInput = jest.fn();
+      await expect(
+        invokeTool(
+          readTool,
+          { n: 'bad' },
+          'rawkey',
+          auth() as unknown as AuthService,
+          undefined,
+          undefined,
+          onInvalidInput,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(onInvalidInput).toHaveBeenCalledTimes(1);
+      expect((onInvalidInput.mock.calls[0] as unknown[])[0]).toBeInstanceOf(BadRequestException);
+    });
+
+    it('is NOT invoked on an auth failure (that is onAuthFailure territory)', async () => {
+      const onInvalidInput = jest.fn();
+      await expect(
+        invokeTool(
+          readTool,
+          { n: 1 },
+          undefined,
+          auth() as unknown as AuthService,
+          undefined,
+          undefined,
+          onInvalidInput,
+        ),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(onInvalidInput).not.toHaveBeenCalled();
+    });
+
+    it('is NOT invoked when the handler throws after valid input', async () => {
+      const onInvalidInput = jest.fn();
+      const throwingHandler: ToolDescriptor = {
+        ...readTool,
+        handler: () => Promise.reject(new BadRequestException('handler-level bad request')),
+      };
+      await expect(
+        invokeTool(
+          throwingHandler,
+          { n: 1 },
+          'rawkey',
+          auth() as unknown as AuthService,
+          undefined,
+          undefined,
+          onInvalidInput,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      // A handler-thrown BadRequest is business logic, not a malformed request — must not count.
+      expect(onInvalidInput).not.toHaveBeenCalled();
+    });
+
+    it('is NOT invoked on a successful call', async () => {
+      const onInvalidInput = jest.fn();
+      await invokeTool(
+        readTool,
+        { n: 1 },
+        'rawkey',
+        auth() as unknown as AuthService,
+        undefined,
+        undefined,
+        onInvalidInput,
+      );
+      expect(onInvalidInput).not.toHaveBeenCalled();
+    });
+  });
 });

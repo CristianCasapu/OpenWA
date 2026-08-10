@@ -9,6 +9,7 @@ import { resolveClientIp, cfConnectingIpTrusted } from '../../../common/utils/ip
 import { setRequestActor } from '../../../common/services/request-context';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../audit/entities/audit-log.entity';
+import { SecurityEventLogService, claimSecurityEvent } from '../../../common/security/security-event-log.service';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -17,6 +18,7 @@ export class ApiKeyGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly securityLog: SecurityEventLogService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -35,15 +37,21 @@ export class ApiKeyGuard implements CanActivate {
       // credential probing. Fire-and-forget: audit logging is best-effort and must never turn a
       // 401/403 into a failure of the guard itself.
       if (err instanceof UnauthorizedException || err instanceof ForbiddenException) {
+        const ip = this.getClientIp(request);
         // Stamp at least the IP so the failed-auth audit row below is attributable even though the
         // key was never resolved. setRequestActor is a no-op outside a request scope.
-        setRequestActor({ ipAddress: this.getClientIp(request) });
+        setRequestActor({ ipAddress: ip });
         void this.auditService.logWarn(AuditAction.API_KEY_AUTH_FAILED, {
-          ipAddress: this.getClientIp(request),
+          ipAddress: ip,
           method: request.method,
           path: request.path,
           errorMessage: err.message,
         });
+        // Emit the specific `wrong_api_key` fail2ban line and CLAIM the request, so the HTTP boundary
+        // observer does not ALSO emit a generic `invalid_request` line for the same 401/403 — one
+        // rejected key counts once toward fail2ban's maxretry, not twice.
+        this.securityLog.logWrongApiKey('rest', ip);
+        claimSecurityEvent(request);
       }
       throw err;
     }

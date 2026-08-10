@@ -95,6 +95,7 @@ test('mergeChatMessages: returns ascending by timestamp (oldest first, newest la
 });
 
 import {
+  createTempMessageId,
   mergeOrAppend,
   updateMessageById,
   removeMessageById,
@@ -103,6 +104,27 @@ import {
   senderKey,
   type ChatMessageView,
 } from './chatMessages.ts';
+
+test('createTempMessageId is unique per call, not per millisecond', () => {
+  // Optimistic bubbles are keyed on `waMessageId ?? id`; a per-millisecond id made two same-tick
+  // sends merge into one bubble, and the first send's reconcile patched whichever row survived.
+  const a = createTempMessageId();
+  const b = createTempMessageId();
+  assert.notEqual(a, b);
+  assert.ok(a.startsWith('temp_'));
+});
+
+test('two optimistic bubbles created in the same tick both survive mergeOrAppend', () => {
+  // The optimistic placeholder carries no waMessageId, so its id IS its identity in the merge.
+  const first = msg({ id: createTempMessageId(), waMessageId: undefined, body: 'first', status: 'pending' });
+  const second = msg({ id: createTempMessageId(), waMessageId: undefined, body: 'second', status: 'pending' });
+  const after = mergeOrAppend(mergeOrAppend([], first), second);
+  assert.equal(after.length, 2);
+  assert.deepEqual(
+    after.map(m => m.body),
+    ['first', 'second'],
+  );
+});
 
 const msg = (over: Partial<ChatMessageView> = {}): ChatMessageView => ({
   id: 'm-1',

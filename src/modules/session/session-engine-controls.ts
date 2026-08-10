@@ -206,8 +206,10 @@ export class SessionEngineControls {
       } catch (err) {
         // engine.initialize() failed AFTER the engine was registered (initializeEngine sets it before
         // initializing). Evict + tear it down so the session doesn't wedge at "already started" with a
-        // leaked Chromium/socket permanently holding a concurrency slot. initializingSessions serializes
-        // start(), so the engine in the map here is the one this start just created.
+        // leaked Chromium/socket permanently holding a concurrency slot. initializingSessions
+        // serializes start() against both other starts and in-flight reconnect attempts, so the
+        // engine in the map here should be the one this start just created — deleteIfLive makes the
+        // eviction hold to that identity even if a future path breaks the serialization.
         //
         // Use forceDestroy(), not destroy(): initialize() failing usually means the underlying
         // browser/CDP connection is already broken (e.g. a "Target closed" crash mid-injection), so
@@ -217,7 +219,7 @@ export class SessionEngineControls {
         // for a wedged engine, which is exactly the state this catch block is handling.
         const orphan = this.engines.get(id);
         if (orphan) {
-          this.engines.delete(id);
+          this.engines.deleteIfLive(id, orphan);
           this.sessionErrors.set(id, err instanceof Error ? err.message : String(err));
           await this.fences.teardownEngineSafely(id, orphan, e => e.forceDestroy(), 'force-destroy');
           // Fenced on ownership like the engine callbacks: initializeEngine can await a slow

@@ -994,6 +994,20 @@ export class SessionEngineLifecycle {
     if (this.stoppingSessions.has(id)) {
       return;
     }
+    // Reserve the same initialization slot start() reserves, for the whole teardown→init span.
+    // Without it the window between deleteIfLive(oldEngine) below and initializeEngine's
+    // engines.set() is invisible to BOTH of start()'s guards ("already starting" and "already
+    // started"), so a start() landing inside it created a SECOND engine for the same account —
+    // two live WhatsApp connections, with the loser never destroyed. The reservation makes the
+    // race loud instead: start() refuses with "already starting" while a reconnect attempt is
+    // executing. The reverse interleaving is the same race — a timer that fired before start()'s
+    // cancelReconnect could already be executing when start() reserves the slot — so an already
+    // -held reservation means this attempt must yield to the in-flight start(), not reschedule
+    // against it.
+    if (this.initializingSessions.has(id)) {
+      return;
+    }
+    this.initializingSessions.add(id);
     try {
       // Clean up old engine. Time-bound the teardown: a wedged Chromium (the common reconnect
       // trigger) makes destroy() hang, and a raw await here would stall the reconnect forever —
@@ -1063,6 +1077,10 @@ export class SessionEngineLifecycle {
       }
       // Schedule another attempt
       this.scheduleReconnect(id, session);
+    } finally {
+      // Released on success and failure alike; the rescheduled attempt (a timer) re-reserves on
+      // entry, so nothing wedges at "already starting".
+      this.initializingSessions.delete(id);
     }
   }
 

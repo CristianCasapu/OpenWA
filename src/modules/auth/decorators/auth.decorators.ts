@@ -7,6 +7,7 @@ export const REQUIRED_ROLE_KEY = 'requiredRole';
 export const PUBLIC_KEY = 'isPublic';
 export const SESSION_SCOPED_KEY = 'sessionScoped';
 export const UNSCOPED_KEY = 'requireUnscopedKey';
+export const MFA_EXEMPT_KEY = 'mfaExempt';
 
 /**
  * Mark a route as requiring a specific role
@@ -37,6 +38,16 @@ export const Public = () => SetMetadata(PUBLIC_KEY, true);
  * @example @RequireUnscopedKey() @Controller('auth/api-keys')
  */
 export const RequireUnscopedKey = () => SetMetadata(UNSCOPED_KEY, true);
+
+/**
+ * Mark a route as exempt from the 2FA session-token requirement. An MFA-enabled key is normally
+ * refused as a plain bearer credential unless a valid post-TOTP dashboard session token accompanies
+ * it — but the very routes that mint/prepare that token (`/auth/validate`, `/auth/mfa/*`) must be
+ * reachable with the key alone, or an enrolled key could never obtain a session in the first place.
+ * The key is still fully validated (role/scope/IP); only the extra MFA session check is skipped.
+ * @example @MfaExempt() @Post('mfa/session')
+ */
+export const MfaExempt = () => SetMetadata(MFA_EXEMPT_KEY, true);
 
 /**
  * Get the current API key from request

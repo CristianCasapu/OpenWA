@@ -17,6 +17,10 @@
                 "api_key_revoked",
                 "api_key_deleted",
                 "api_key_auth_failed",
+                "mfa_enrolled",
+                "mfa_disabled",
+                "mfa_verified",
+                "mfa_failed",
                 "rate_limit_exceeded",
                 "queue_board_mutated",
                 "session_created",
@@ -327,6 +331,123 @@
           }
         },
         "summary": "Validate an API key",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/status": {
+      "get": {
+        "operationId": "AuthMfaController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "2FA status"
+          }
+        },
+        "summary": "Whether 2FA is enabled on the current API key",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/setup": {
+      "post": {
+        "operationId": "AuthMfaController_setup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Enrollment material (shown once)"
+          },
+          "409": {
+            "description": "2FA is already enabled"
+          }
+        },
+        "summary": "Begin 2FA enrollment: generate a secret + QR (not yet active)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/enable": {
+      "post": {
+        "operationId": "AuthMfaController_enable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enabled; a session token is returned"
+          },
+          "401": {
+            "description": "Invalid code"
+          }
+        },
+        "summary": "Confirm enrollment with a code — the key becomes interactive-only",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/disable": {
+      "post": {
+        "operationId": "AuthMfaController_disable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Disabled"
+          },
+          "401": {
+            "description": "Invalid code"
+          }
+        },
+        "summary": "Disable 2FA (requires a current code)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/session": {
+      "post": {
+        "operationId": "AuthMfaController_session",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session token issued"
+          },
+          "401": {
+            "description": "Invalid code"
+          }
+        },
+        "summary": "Exchange a code for a short-lived dashboard session token",
         "tags": [
           "auth"
         ]
@@ -9352,6 +9473,19 @@
             "type": "string"
           }
         }
+      },
+      "MfaCodeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The 6-digit code from the authenticator app",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "code"
+        ]
       },
       "CreateSessionDto": {
         "type": "object",

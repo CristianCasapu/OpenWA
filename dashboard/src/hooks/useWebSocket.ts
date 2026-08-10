@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { warnIfInsecureHttpUrl } from '../utils/urlSecurity';
+import { stripTrailingSlashes, warnIfInsecureHttpUrl } from '../utils/urlSecurity';
 
 interface SessionStatusEvent {
   sessionId: string;
@@ -138,13 +138,28 @@ interface ServerErrorFrame {
 }
 
 // Use current origin for WebSocket (goes through nginx proxy in Docker)
-// Falls back to env var or localhost for development
-const SOCKET_URL = import.meta.env.VITE_WS_URL || window.location.origin;
+// Falls back to env var or localhost for development. Normalized like API_ORIGIN in api.ts:
+// a trailing slash would make io() parse the namespace as '//events', which never matches the
+// gateway's '/events' namespace — realtime would silently fail while REST kept working.
+const SOCKET_URL = stripTrailingSlashes(import.meta.env.VITE_WS_URL || window.location.origin);
 // Warn when the WebSocket origin is an insecure http:// URL on a non-localhost host.
 warnIfInsecureHttpUrl(SOCKET_URL, 'VITE_WS_URL');
 
 export function useWebSocket(events: WebSocketEvents = {}) {
   const socketRef = useRef<Socket | null>(null);
+  // Bumped each time connect() builds a NEW socket instance, so the handler-registration effect
+  // below re-runs for it. Without this the effect re-attached only because callers pass a fresh
+  // `events` object literal every render — memoize that object anywhere upstream and a manual
+  // reconnect() would produce a live socket with zero message listeners.
+  const [socketEpoch, setSocketEpoch] = useState(0);
+  // The callbacks live in a ref refreshed after every render (the latest-ref pattern), so the
+  // handler effect does not need to depend on the `events` object's identity (an inline literal
+  // at every call site). Messages arrive asynchronously, always after the effect has run, so the
+  // handler never reads a stale set of callbacks.
+  const eventsRef = useRef(events);
+  useEffect(() => {
+    eventsRef.current = events;
+  });
   const [isConnected, setIsConnected] = useState(false);
   // True when the connection is dead until the user retries: Socket.IO either exhausted its
   // reconnection attempts, or the server itself closed the socket (rate limit, auth rejection,
@@ -205,6 +220,9 @@ export function useWebSocket(events: WebSocketEvents = {}) {
       console.warn('[WebSocket] Reconnection failed after max attempts');
       setConnectionFailed(true);
     });
+
+    // A new socket instance exists — tell the handler effect to attach to it.
+    setSocketEpoch(epoch => epoch + 1);
   }, []);
 
   // Manual retry after the socket permanently gave up: tear down the dead socket and reconnect.
@@ -247,7 +265,9 @@ export function useWebSocket(events: WebSocketEvents = {}) {
     };
   }, [connect]);
 
-  // Register the single envelope handler and fan out to the typed callbacks.
+  // Register the single envelope handler and fan out to the typed callbacks. Keyed on
+  // socketEpoch — the socket INSTANCE — not on the `events` object, whose identity rotates
+  // every render; the callbacks are read through eventsRef so they are always current.
   useEffect(() => {
     if (!socketRef.current) return;
 
@@ -255,6 +275,7 @@ export function useWebSocket(events: WebSocketEvents = {}) {
 
     const handleIncomingMessage = (msg: ServerEventEnvelope | ServerAckFrame | ServerErrorFrame) => {
       if (!msg || typeof msg.type !== 'string') return;
+      const events = eventsRef.current;
 
       if (msg.type === 'error') {
         events.onServerError?.({ code: String(msg.code ?? ''), message: String(msg.message ?? '') });
@@ -355,7 +376,7 @@ export function useWebSocket(events: WebSocketEvents = {}) {
     return () => {
       socket.off('message', handleIncomingMessage);
     };
-  }, [events]);
+  }, [socketEpoch]);
 
   return { isConnected, connectionFailed, reconnect, subscribe, unsubscribe };
 }

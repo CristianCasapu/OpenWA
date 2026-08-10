@@ -177,7 +177,15 @@
     "help": "Serve aiuto?",
     "viewDocs": "Visualizza la documentazione",
     "footer": "Fatto con il ❤️ da Yudhi Armyndharis e dalla Community di OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Codice a due fattori",
+      "codePlaceholder": "000000",
+      "hint": "Inserisci il codice a 6 cifre dalla tua app di autenticazione.",
+      "verify": "Verifica",
+      "back": "Indietro",
+      "invalidCode": "Codice non valido. Riprova."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -542,6 +550,30 @@
       "copy": "Copia",
       "revoke": "Revoca",
       "delete": "Elimina"
+    },
+    "mfa": {
+      "title": "Autenticazione a due fattori",
+      "subtitle": "Proteggi questa chiave admin con un'app TOTP (Google Authenticator, ecc.).",
+      "on": "Attivo",
+      "off": "Disattivo",
+      "interactiveOnlyWarning": "Abilitare la 2FA rende questa chiave solo interattiva: smetterà di funzionare per i client API headless. Tieni una chiave operatore separata per l'automazione.",
+      "enable": "Abilita 2FA",
+      "setupFailed": "Impossibile avviare la configurazione della 2FA",
+      "scanInstruction": "Scansiona questo codice QR con la tua app di autenticazione, o inserisci la chiave manualmente.",
+      "qrAlt": "Codice QR 2FA",
+      "manualKey": "Chiave manuale:",
+      "copy": "Copia",
+      "secretCopied": "Segreto copiato",
+      "enterCodeToConfirm": "Inserisci il codice a 6 cifre per confermare",
+      "codePlaceholder": "000000",
+      "invalidCode": "Codice non valido. Riprova.",
+      "confirmEnable": "Conferma e abilita",
+      "enabledToast": "Autenticazione a due fattori abilitata",
+      "enabledNote": "La 2FA è attiva per questa chiave. Inserirai un codice dal tuo autenticatore a ogni accesso alla dashboard.",
+      "disable": "Disabilita 2FA",
+      "enterCodeToDisable": "Inserisci un codice corrente per disabilitare la 2FA",
+      "confirmDisable": "Disabilita",
+      "disabledToast": "Autenticazione a due fattori disabilitata"
     }
   },
   "logs": {

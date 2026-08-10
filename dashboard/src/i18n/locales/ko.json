@@ -177,7 +177,15 @@
     "help": "도움이 필요하신가요?",
     "viewDocs": "문서 보기",
     "footer": "Yudhi Armyndharis와 OpenWA 커뮤니티가 ❤️로 만들었습니다",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "2단계 인증 코드",
+      "codePlaceholder": "000000",
+      "hint": "인증 앱의 6자리 코드를 입력하세요.",
+      "verify": "확인",
+      "back": "뒤로",
+      "invalidCode": "잘못된 코드입니다. 다시 시도하세요."
+    }
   },
   "dashboard": {
     "title": "대시보드",
@@ -542,6 +550,30 @@
       "copy": "복사",
       "revoke": "폐기",
       "delete": "삭제"
+    },
+    "mfa": {
+      "title": "2단계 인증",
+      "subtitle": "TOTP 앱(Google Authenticator 등)으로 이 관리자 키를 보호하세요.",
+      "on": "켜짐",
+      "off": "꺼짐",
+      "interactiveOnlyWarning": "2단계 인증을 켜면 이 키는 대화형 전용이 됩니다 — 헤드리스 API 클라이언트에서는 더 이상 작동하지 않습니다. 자동화에는 별도의 오퍼레이터 키를 사용하세요.",
+      "enable": "2단계 인증 켜기",
+      "setupFailed": "2단계 인증 설정을 시작할 수 없습니다",
+      "scanInstruction": "인증 앱으로 이 QR 코드를 스캔하거나 키를 수동으로 입력하세요.",
+      "qrAlt": "2단계 인증 QR 코드",
+      "manualKey": "수동 키:",
+      "copy": "복사",
+      "secretCopied": "시크릿이 복사됨",
+      "enterCodeToConfirm": "확인하려면 6자리 코드를 입력하세요",
+      "codePlaceholder": "000000",
+      "invalidCode": "잘못된 코드입니다. 다시 시도하세요.",
+      "confirmEnable": "확인 후 켜기",
+      "enabledToast": "2단계 인증이 활성화됨",
+      "enabledNote": "이 키에 2단계 인증이 켜져 있습니다. 대시보드에 로그인할 때마다 인증 앱의 코드를 입력합니다.",
+      "disable": "2단계 인증 끄기",
+      "enterCodeToDisable": "2단계 인증을 끄려면 현재 코드를 입력하세요",
+      "confirmDisable": "끄기",
+      "disabledToast": "2단계 인증이 비활성화됨"
     }
   },
   "logs": {

@@ -17,6 +17,7 @@ import { CreateApiKeyDto, UpdateApiKeyDto } from './dto';
 import { createLogger } from '../../common/services/logger.service';
 import { readBootstrapKey, removeBootstrapKey, writeBootstrapKey } from './bootstrap-key-file';
 import { ApiKeyUsageTracker } from './api-key-usage-tracker.service';
+import { AuthLockoutService } from './auth-lockout.service';
 import { EventsGateway, type ApiKeyEvictionReason } from '../events/events.gateway';
 import { KeyedAsyncLock } from '../integration/ordering-lock';
 
@@ -72,6 +73,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     private readonly apiKeyRepository: Repository<ApiKey>,
     private readonly usageTracker: ApiKeyUsageTracker,
     private readonly moduleRef: ModuleRef,
+    private readonly lockout: AuthLockoutService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -418,10 +420,18 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     // authenticates over REST but fails on the WebSocket handshake (the CONNECT payload carries the
     // literal string) — the dashboard then runs commands fine while never receiving events, and the
     // session looks permanently disconnected. Whitespace is never part of a key.
+    // Brute-force lockout: reject up front (429) when this IP has too many recent failures, before
+    // the DB hash lookup runs. Keyed on the already-resolved client IP so it targets the real
+    // attacker, not the proxy/Cloudflare edge.
+    this.lockout.assertNotBlocked(clientIp);
+
     const keyHash = this.hashKey(rawKey?.trim());
     const apiKey = await this.apiKeyRepository.findOne({ where: { keyHash } });
 
     if (!apiKey) {
+      // Only an UNKNOWN key counts toward lockout: it is the brute-force signal. A revoked/expired
+      // key or a wrong source IP below is a KNOWN key, not guessing, so those never accrue.
+      this.lockout.recordFailure(clientIp);
       throw new UnauthorizedException('Invalid API key');
     }
 
@@ -454,6 +464,10 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         throw new UnauthorizedException('API key not authorized for this session');
       }
     }
+
+    // A good authentication clears this IP's failure counter so a legitimate client that fat-fingered
+    // a few keys earlier is not carried toward a lockout.
+    this.lockout.recordSuccess(clientIp);
 
     // Advisory stats only; the tracker coalesces the write and never throws.
     await this.usageTracker.record(apiKey);

@@ -118,6 +118,13 @@ export const BLANK_SHADOWED_ENV_KEYS: string[] = [
   'BODY_SIZE_LIMIT',
   'API_MASTER_KEY',
   'TRUSTED_PROXIES',
+  // Brute-force lockout knobs, blank-forwarded like the rate-limit values so a host value can take
+  // precedence without an empty forward masking a lower-priority .env / data/.env.generated value.
+  'AUTH_LOCKOUT_ENABLED',
+  'AUTH_LOCKOUT_THRESHOLD',
+  'AUTH_LOCKOUT_WINDOW_MS',
+  'AUTH_LOCKOUT_BLOCK_MS',
+  'AUTH_LOCKOUT_MAX_KEYS',
   'CSP_UPGRADE_INSECURE_REQUESTS',
   // whatsapp-web.js launch knobs: the WhatsApp Web version pin, its remote HTML template, and the
   // first-boot init wait raised for slow hosts.

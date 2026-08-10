@@ -7,6 +7,7 @@ import { ApiKeyUsageTracker } from './api-key-usage-tracker.service';
 import { AuthController } from './auth.controller';
 import { AuthValidateController } from './auth-validate.controller';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { AuthLockoutService } from './auth-lockout.service';
 import { ProxyAwareThrottlerGuard } from '../../common/security/proxy-aware-throttler.guard';
 
 @Global()
@@ -16,6 +17,7 @@ import { ProxyAwareThrottlerGuard } from '../../common/security/proxy-aware-thro
   providers: [
     AuthService,
     ApiKeyUsageTracker,
+    AuthLockoutService,
     {
       provide: APP_GUARD,
       useClass: ProxyAwareThrottlerGuard,

@@ -313,7 +313,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('message')
-  handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
     // Per-key token bucket on every inbound frame. Keyed by the validated key id; a socket
     // whose handshake validation is still in flight has no key yet and is metered by IP.
     // Over-budget frames get an error frame back and are NOT dispatched to a handler — in
@@ -331,6 +331,22 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return error;
     }
 
+    const response = await this.dispatchMessage(client, message);
+    // Deliver the frame explicitly: Nest's IoAdapter forwards a @SubscribeMessage return value
+    // only when the client passed an ack callback or the response carries an `event` key. These
+    // frames carry `type` and the dashboard emits WITHOUT an ack, so without this emit no
+    // subscribe ack, pong, or error frame ever reached it — in particular the FORBIDDEN_SESSION
+    // error a session-scoped key's feed relies on to fall back from a '*' subscription (its QR
+    // flow sat on "generating" forever). The UNAUTHORIZED path emits and then disconnects inside
+    // the handler, so the connected guard keeps this from double-sending that one frame. The
+    // response is still returned for any client that does pass an ack.
+    if (response && client.connected) {
+      client.emit('message', response);
+    }
+    return response;
+  }
+
+  private dispatchMessage(client: Socket, message: WSClientMessage) {
     switch (message.type) {
       case 'subscribe':
         return this.handleSubscribe(client, message);

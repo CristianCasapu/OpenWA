@@ -19,6 +19,10 @@ import type { AnyToolDescriptor } from './tool-descriptor';
  * allowed). Mirrors the REST ApiKeyGuard's auth-failure hook (which records the
  * audit trail). Fires BEFORE input validation and the tool handler, so a 401/403
  * thrown from a handler body is NOT surfaced here. Re-thrown after the callback.
+ * @param onInvalidInput Optional callback invoked when INPUT VALIDATION fails (the
+ * tool's own schema rejects the arguments — a malformed request, not an auth
+ * failure and not a handler error). Fires only for the schema `parse` step, so a
+ * handler-thrown BadRequest is NOT surfaced here. Re-thrown after the callback.
  */
 export async function invokeTool(
   tool: AnyToolDescriptor,
@@ -27,6 +31,7 @@ export async function invokeTool(
   authService: AuthService,
   onAuthenticated?: (apiKeyId: string) => void,
   onAuthFailure?: (error: unknown) => void,
+  onInvalidInput?: (error: unknown) => void,
 ): Promise<unknown> {
   // AUTH PHASE — every rejection here is an authentication/authorization failure (the MCP analog of the
   // REST ApiKeyGuard's authorize()). Wrapped so onAuthFailure can record the audit trail at the boundary.
@@ -67,7 +72,9 @@ export async function invokeTool(
     input = tool.inputSchema.parse(rawInput);
   } catch (e) {
     if (e instanceof ZodError) {
-      throw new BadRequestException(e.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`));
+      const badRequest = new BadRequestException(e.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`));
+      onInvalidInput?.(badRequest);
+      throw badRequest;
     }
     throw e;
   }

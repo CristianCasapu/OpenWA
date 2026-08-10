@@ -3,6 +3,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { ToolRegistryService } from '../../core/agent-tools/tool-registry.service';
 import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
+import { SecurityEventLogService } from '../../common/security/security-event-log.service';
 import { KeyRateLimiter, readRateLimitConfig, readIpRateLimitConfig } from './mcp-rate-limit';
 import { mountMcpServer } from './mcp.server';
 
@@ -23,6 +24,8 @@ export class McpModule implements NestModule {
     private readonly httpAdapterHost: HttpAdapterHost,
     // AuditModule is @Global(), so AuditService is injectable here without an explicit import.
     private readonly auditService: AuditService,
+    // SecurityModule is @Global(), so SecurityEventLogService is injectable here too.
+    private readonly securityLog: SecurityEventLogService,
   ) {}
 
   static forRoot(options: McpModuleOptions = {}): DynamicModule {
@@ -54,6 +57,7 @@ export class McpModule implements NestModule {
       ipRateLimiter,
       { basePath, serverInfo },
       this.auditService,
+      this.securityLog,
     );
   }
 }

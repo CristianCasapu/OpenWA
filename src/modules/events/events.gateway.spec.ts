@@ -4,7 +4,14 @@ import { EventsGateway, isSessionSubscriptionAllowed } from './events.gateway';
 import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { SecurityEventLogService } from '../../common/security/security-event-log.service';
 import { SUBSCRIBABLE_EVENTS, buildRoomName } from './dto/ws-messages.dto';
+
+/** A no-op SecurityEventLogService double: the two emit methods, spied. */
+const makeSecurityLogMock = (): jest.Mocked<Pick<SecurityEventLogService, 'logWrongApiKey' | 'logInvalidRequest'>> => ({
+  logWrongApiKey: jest.fn(),
+  logInvalidRequest: jest.fn(),
+});
 import type { WSClientMessage, WSErrorResponse, WSSubscribedResponse, WSEventMessage } from './dto/ws-messages.dto';
 import { WEBHOOK_RESERVED_EVENTS } from '../webhook/dto/webhook.dto';
 
@@ -64,11 +71,17 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     ({ type: 'subscribe', sessionId, events, requestId: 'r1' }) as unknown as WSClientMessage;
 
   let auditService: { logWarn: jest.Mock };
+  let securityLog: ReturnType<typeof makeSecurityLogMock>;
 
   beforeEach(() => {
     authService = { validateApiKey: jest.fn() };
     auditService = { logWarn: jest.fn().mockResolvedValue(null) };
-    gateway = new EventsGateway(authService as unknown as AuthService, auditService as unknown as AuditService);
+    securityLog = makeSecurityLogMock();
+    gateway = new EventsGateway(
+      authService as unknown as AuthService,
+      auditService as unknown as AuditService,
+      securityLog as unknown as SecurityEventLogService,
+    );
   });
 
   it('rejects a connection with no API key (and never calls validate)', async () => {
@@ -76,6 +89,8 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     await gateway.handleConnection(asSocket(sock));
     expect(sock.disconnect).toHaveBeenCalled();
     expect(authService.validateApiKey).not.toHaveBeenCalled();
+    // A missing key over the WS surface emits the fail2ban wrong_api_key line with the resolved IP.
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('ws', '203.0.113.5');
   });
 
   it('does NOT accept the API key from the query string (credential must not travel in the URL)', async () => {
@@ -101,6 +116,22 @@ describe('EventsGateway connection auth + subscribe re-validation', () => {
     const sock = makeSocket({ apiKey: 'bad' });
     await gateway.handleConnection(asSocket(sock));
     expect(sock.disconnect).toHaveBeenCalled();
+    // A rejected key over the WS surface emits the fail2ban wrong_api_key line too.
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('ws', '203.0.113.5');
+  });
+
+  it('emits an invalid_request security line on an unknown WS frame type', async () => {
+    authService.validateApiKey.mockResolvedValue({ id: 'k1', name: 'k', allowedSessions: null });
+    const sock = makeSocket({ apiKey: 'good' });
+    await gateway.handleConnection(asSocket(sock));
+
+    const res = (await gateway.handleMessage(asSocket(sock), {
+      type: 'bogus',
+      requestId: 'r9',
+    } as unknown as WSClientMessage)) as WSErrorResponse;
+
+    expect(res.code).toBe('INVALID_MESSAGE');
+    expect(securityLog.logInvalidRequest).toHaveBeenCalledWith('ws', '203.0.113.5');
   });
 
   it('accepts a valid key via handshake.auth and stores the raw key for re-validation', async () => {
@@ -384,6 +415,7 @@ describe('EventsGateway.emitToRooms fan-out', () => {
     new EventsGateway(
       { validateApiKey: jest.fn() } as unknown as AuthService,
       { logWarn: jest.fn().mockResolvedValue(null) } as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
     );
 
   it('delivers one event with a single broadcast across all four rooms (no per-room duplicate emit)', () => {
@@ -420,6 +452,7 @@ describe('event catalog ⇔ emitter invariants (drift guard)', () => {
     const gateway = new EventsGateway(
       { validateApiKey: jest.fn() } as unknown as AuthService,
       { logWarn: jest.fn().mockResolvedValue(null) } as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
     );
     const captured: string[] = [];
     const op: { to: () => unknown; emit: (ch: string, msg: WSEventMessage) => boolean } = {
@@ -502,7 +535,11 @@ describe('EventsGateway rate limiting', () => {
   });
 
   const buildGateway = (): EventsGateway => {
-    gateway = new EventsGateway(authService as unknown as AuthService, auditService as unknown as AuditService);
+    gateway = new EventsGateway(
+      authService as unknown as AuthService,
+      auditService as unknown as AuditService,
+      makeSecurityLogMock() as unknown as SecurityEventLogService,
+    );
     return gateway;
   };
 

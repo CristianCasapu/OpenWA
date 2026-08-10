@@ -4,12 +4,22 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
 import { ApiKeyRole } from '../entities/api-key.entity';
-import { REQUIRED_ROLE_KEY, PUBLIC_KEY, SESSION_SCOPED_KEY, UNSCOPED_KEY } from '../decorators/auth.decorators';
+import {
+  REQUIRED_ROLE_KEY,
+  PUBLIC_KEY,
+  SESSION_SCOPED_KEY,
+  UNSCOPED_KEY,
+  MFA_EXEMPT_KEY,
+} from '../decorators/auth.decorators';
 import { resolveClientIp, cfConnectingIpTrusted } from '../../../common/utils/ip';
 import { setRequestActor } from '../../../common/services/request-context';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../audit/entities/audit-log.entity';
 import { SecurityEventLogService, claimSecurityEvent } from '../../../common/security/security-event-log.service';
+import { MfaService } from '../mfa.service';
+
+/** Header the dashboard sends with the post-TOTP session token for an MFA-enabled key. */
+export const DASHBOARD_SESSION_HEADER = 'x-dashboard-session';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -19,6 +29,7 @@ export class ApiKeyGuard implements CanActivate {
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly securityLog: SecurityEventLogService,
+    private readonly mfaService: MfaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -98,6 +109,26 @@ export class ApiKeyGuard implements CanActivate {
     ]);
     if (requireUnscoped && (apiKey.allowedSessions?.length ?? 0) > 0) {
       throw new ForbiddenException('Session-scoped API keys are not permitted on this route');
+    }
+
+    // Two-factor enforcement: a key with 2FA enabled is interactive-only — it is refused as a plain
+    // bearer credential unless a valid post-TOTP dashboard session token accompanies it. The routes
+    // that mint that token (`/auth/validate`, `/auth/mfa/*`) are `@MfaExempt()` so an enrolled key can
+    // still reach them with the key alone. A headless client (only X-API-Key) therefore cannot use an
+    // MFA-enabled key at all. The 401 carries `code: MFA_REQUIRED` so the dashboard shows the TOTP step
+    // instead of a full logout.
+    if (apiKey.mfaEnabled) {
+      const mfaExempt = this.reflector.getAllAndOverride<boolean>(MFA_EXEMPT_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      if (!mfaExempt) {
+        const token = request.headers[DASHBOARD_SESSION_HEADER];
+        const session = this.mfaService.verifySessionToken(typeof token === 'string' ? token : undefined);
+        if (!session || session.keyId !== apiKey.id) {
+          throw new UnauthorizedException({ message: 'Two-factor session required', code: 'MFA_REQUIRED' });
+        }
+      }
     }
 
     // Attach API key to request for use in controllers

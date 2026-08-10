@@ -177,7 +177,15 @@
     "help": "¿Necesitas ayuda?",
     "viewDocs": "Ver documentación",
     "footer": "Hecho con ❤️ por Yudhi Armyndharis y la comunidad OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Código de dos factores",
+      "codePlaceholder": "000000",
+      "hint": "Introduce el código de 6 dígitos de tu app de autenticación.",
+      "verify": "Verificar",
+      "back": "Atrás",
+      "invalidCode": "Código no válido. Inténtalo de nuevo."
+    }
   },
   "dashboard": {
     "title": "Panel",
@@ -497,6 +505,30 @@
       "copy": "Copiar",
       "revoke": "Revocar",
       "delete": "Eliminar"
+    },
+    "mfa": {
+      "title": "Autenticación en dos pasos",
+      "subtitle": "Protege esta clave de administrador con una app TOTP (Google Authenticator, etc.).",
+      "on": "Activado",
+      "off": "Desactivado",
+      "interactiveOnlyWarning": "Activar 2FA hace que esta clave sea solo interactiva: dejará de funcionar para clientes API sin interfaz. Mantén una clave de operador aparte para la automatización.",
+      "enable": "Activar 2FA",
+      "setupFailed": "No se pudo iniciar la configuración de 2FA",
+      "scanInstruction": "Escanea este código QR con tu app de autenticación o introduce la clave manualmente.",
+      "qrAlt": "Código QR de 2FA",
+      "manualKey": "Clave manual:",
+      "copy": "Copiar",
+      "secretCopied": "Secreto copiado",
+      "enterCodeToConfirm": "Introduce el código de 6 dígitos para confirmar",
+      "codePlaceholder": "000000",
+      "invalidCode": "Código no válido. Inténtalo de nuevo.",
+      "confirmEnable": "Confirmar y activar",
+      "enabledToast": "Autenticación en dos pasos activada",
+      "enabledNote": "La 2FA está activada para esta clave. Introducirás un código de tu autenticador en cada inicio de sesión del panel.",
+      "disable": "Desactivar 2FA",
+      "enterCodeToDisable": "Introduce un código actual para desactivar la 2FA",
+      "confirmDisable": "Desactivar",
+      "disabledToast": "Autenticación en dos pasos desactivada"
     }
   },
   "logs": {

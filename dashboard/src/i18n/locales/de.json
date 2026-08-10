@@ -177,7 +177,15 @@
     "help": "Brauchst du Hilfe?",
     "viewDocs": "Dokumentation ansehen",
     "footer": "Mit ❤️ erstellt von Yudhi Armyndharis und der OpenWA-Community",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Zwei-Faktor-Code",
+      "codePlaceholder": "000000",
+      "hint": "Gib den 6-stelligen Code aus deiner Authenticator-App ein.",
+      "verify": "Bestätigen",
+      "back": "Zurück",
+      "invalidCode": "Ungültiger Code. Bitte erneut versuchen."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -542,6 +550,30 @@
       "copy": "Kopieren",
       "revoke": "Widerrufen",
       "delete": "Löschen"
+    },
+    "mfa": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "subtitle": "Schütze diesen Admin-Schlüssel mit einer TOTP-App (Google Authenticator usw.).",
+      "on": "Ein",
+      "off": "Aus",
+      "interactiveOnlyWarning": "Das Aktivieren von 2FA macht diesen Schlüssel interaktiv-only — er funktioniert nicht mehr für Headless-API-Clients. Behalte einen separaten Operator-Schlüssel für die Automatisierung.",
+      "enable": "2FA aktivieren",
+      "setupFailed": "Die 2FA-Einrichtung konnte nicht gestartet werden",
+      "scanInstruction": "Scanne diesen QR-Code mit deiner Authenticator-App oder gib den Schlüssel manuell ein.",
+      "qrAlt": "2FA-QR-Code",
+      "manualKey": "Manueller Schlüssel:",
+      "copy": "Kopieren",
+      "secretCopied": "Secret kopiert",
+      "enterCodeToConfirm": "Gib den 6-stelligen Code zur Bestätigung ein",
+      "codePlaceholder": "000000",
+      "invalidCode": "Ungültiger Code. Bitte erneut versuchen.",
+      "confirmEnable": "Bestätigen & aktivieren",
+      "enabledToast": "Zwei-Faktor-Authentifizierung aktiviert",
+      "enabledNote": "Für diesen Schlüssel ist 2FA aktiv. Du gibst bei jeder Dashboard-Anmeldung einen Code aus deiner Authenticator-App ein.",
+      "disable": "2FA deaktivieren",
+      "enterCodeToDisable": "Gib einen aktuellen Code ein, um 2FA zu deaktivieren",
+      "confirmDisable": "Deaktivieren",
+      "disabledToast": "Zwei-Faktor-Authentifizierung deaktiviert"
     }
   },
   "logs": {

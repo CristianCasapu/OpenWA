@@ -177,7 +177,15 @@
     "help": "Need help?",
     "viewDocs": "View Documentation",
     "footer": "Made with ❤️ by Yudhi Armyndharis and the OpenWA Community",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Two-factor code",
+      "codePlaceholder": "000000",
+      "hint": "Enter the 6-digit code from your authenticator app.",
+      "verify": "Verify",
+      "back": "Back",
+      "invalidCode": "Invalid code. Try again."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -542,6 +550,30 @@
       "copy": "Copy",
       "revoke": "Revoke",
       "delete": "Delete"
+    },
+    "mfa": {
+      "title": "Two-Factor Authentication",
+      "subtitle": "Protect this admin key with a TOTP app (Google Authenticator, etc.).",
+      "on": "On",
+      "off": "Off",
+      "interactiveOnlyWarning": "Enabling 2FA makes this key interactive-only — it will stop working for headless API clients. Keep a separate operator key for automation.",
+      "enable": "Enable 2FA",
+      "setupFailed": "Could not start 2FA setup",
+      "scanInstruction": "Scan this QR code with your authenticator app, or enter the key manually.",
+      "qrAlt": "2FA QR code",
+      "manualKey": "Manual key:",
+      "copy": "Copy",
+      "secretCopied": "Secret copied",
+      "enterCodeToConfirm": "Enter the 6-digit code to confirm",
+      "codePlaceholder": "000000",
+      "invalidCode": "Invalid code. Try again.",
+      "confirmEnable": "Confirm & enable",
+      "enabledToast": "Two-factor authentication enabled",
+      "enabledNote": "2FA is on for this key. You'll enter a code from your authenticator at each dashboard login.",
+      "disable": "Disable 2FA",
+      "enterCodeToDisable": "Enter a current code to disable 2FA",
+      "confirmDisable": "Disable",
+      "disabledToast": "Two-factor authentication disabled"
     }
   },
   "logs": {

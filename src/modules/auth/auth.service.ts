@@ -500,6 +500,26 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     return null;
   }
 
+  /** Load a key by id (for the MFA controller, which reads the current row's encrypted secret). */
+  async findKeyById(keyId: string): Promise<ApiKey | null> {
+    return this.apiKeyRepository.findOne({ where: { id: keyId } });
+  }
+
+  /** Store a freshly generated (encrypted) TOTP secret in the un-confirmed state (`mfaEnabled=false`). */
+  async setMfaSecret(keyId: string, encryptedSecret: string): Promise<void> {
+    await this.apiKeyRepository.update(keyId, { mfaSecret: encryptedSecret, mfaEnabled: false, mfaEnrolledAt: null });
+  }
+
+  /** Confirm enrollment: the key becomes interactive-only from here (guard requires a session token). */
+  async enableMfa(keyId: string): Promise<void> {
+    await this.apiKeyRepository.update(keyId, { mfaEnabled: true, mfaEnrolledAt: new Date() });
+  }
+
+  /** Turn 2FA off and wipe the stored secret. */
+  async disableMfa(keyId: string): Promise<void> {
+    await this.apiKeyRepository.update(keyId, { mfaEnabled: false, mfaSecret: null, mfaEnrolledAt: null });
+  }
+
   private isIpAllowed(clientIp: string, allowedIps: string[]): boolean {
     // Delegate to the shared, hardened matcher (also used by the throttler and the API-key guard's IP
     // resolution): it handles both an exact IP entry and CIDR notation, and — unlike the previous local

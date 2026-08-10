@@ -177,7 +177,15 @@
     "help": "Besoin d'aide ?",
     "viewDocs": "Voir la documentation",
     "footer": "Fait avec ❤️ par Yudhi Armyndharis et la communauté OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "Code à deux facteurs",
+      "codePlaceholder": "000000",
+      "hint": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+      "verify": "Vérifier",
+      "back": "Retour",
+      "invalidCode": "Code non valide. Réessayez."
+    }
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -542,6 +550,30 @@
       "copy": "Copier",
       "revoke": "Révoquer",
       "delete": "Supprimer"
+    },
+    "mfa": {
+      "title": "Authentification à deux facteurs",
+      "subtitle": "Protégez cette clé admin avec une application TOTP (Google Authenticator, etc.).",
+      "on": "Activé",
+      "off": "Désactivé",
+      "interactiveOnlyWarning": "Activer la 2FA rend cette clé interactive uniquement — elle cessera de fonctionner pour les clients API sans interface. Conservez une clé opérateur distincte pour l'automatisation.",
+      "enable": "Activer la 2FA",
+      "setupFailed": "Impossible de démarrer la configuration de la 2FA",
+      "scanInstruction": "Scannez ce QR code avec votre application d'authentification, ou saisissez la clé manuellement.",
+      "qrAlt": "QR code 2FA",
+      "manualKey": "Clé manuelle :",
+      "copy": "Copier",
+      "secretCopied": "Secret copié",
+      "enterCodeToConfirm": "Saisissez le code à 6 chiffres pour confirmer",
+      "codePlaceholder": "000000",
+      "invalidCode": "Code non valide. Réessayez.",
+      "confirmEnable": "Confirmer et activer",
+      "enabledToast": "Authentification à deux facteurs activée",
+      "enabledNote": "La 2FA est activée pour cette clé. Vous saisirez un code de votre authentificateur à chaque connexion au tableau de bord.",
+      "disable": "Désactiver la 2FA",
+      "enterCodeToDisable": "Saisissez un code actuel pour désactiver la 2FA",
+      "confirmDisable": "Désactiver",
+      "disabledToast": "Authentification à deux facteurs désactivée"
     }
   },
   "logs": {

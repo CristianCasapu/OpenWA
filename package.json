@@ -56,6 +56,8 @@
     "migration:run:main:prod": "npm run typeorm:prod -- migration:run -d dist/database/data-source-main.js",
     "migration:revert:main": "npm run typeorm -- migration:revert -d src/database/data-source-main.ts",
     "migration:revert:main:prod": "npm run typeorm:prod -- migration:revert -d dist/database/data-source-main.js",
+    "mfa:reset": "ts-node scripts/mfa-reset.ts",
+    "mfa:reset:prod": "node dist/scripts/mfa-reset.js",
     "migration:show:main": "npm run typeorm -- migration:show -d src/database/data-source-main.ts",
     "migration:show:main:prod": "npm run typeorm:prod -- migration:show -d dist/database/data-source-main.js"
   },
@@ -89,6 +91,7 @@
     "helmet": "^8.3.0",
     "https-proxy-agent": "^7.0.6",
     "ioredis": "^5.11.1",
+    "otpauth": "^9.5.1",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",

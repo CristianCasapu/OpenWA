@@ -63,6 +63,7 @@
 | 29  | [Engine Capability Matrix](./29-engine-capability-matrix.md)     | Per-engine capability support, gaps, and roadmap    |
 | 30  | [Plugin Sandboxing](./30-plugin-sandboxing.md)                   | Worker isolation, capabilities, and plugin limits   |
 | 31  | [Intrusion Prevention (fail2ban)](./31-fail2ban.md)              | Ban probing IPs via a host fail2ban jail            |
+| 32  | [Two-Factor Auth (TOTP)](./32-2fa.md)                            | Google Authenticator 2FA for the dashboard          |
 
 **Examples**
 

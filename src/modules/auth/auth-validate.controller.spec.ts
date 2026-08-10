@@ -11,6 +11,15 @@ describe('AuthValidateController', () => {
     expect(controller.validate(makeKey({ role: ApiKeyRole.ADMIN }))).toEqual({
       valid: true,
       role: ApiKeyRole.ADMIN,
+      mfaRequired: false,
+    });
+  });
+
+  it('signals mfaRequired when the key has 2FA enabled', () => {
+    expect(controller.validate(makeKey({ role: ApiKeyRole.ADMIN, mfaEnabled: true }))).toEqual({
+      valid: true,
+      role: ApiKeyRole.ADMIN,
+      mfaRequired: true,
     });
   });
 
@@ -19,7 +28,7 @@ describe('AuthValidateController', () => {
     // The handler must NOT re-validate without an IP, which previously fail-closed and wrongly
     // reported valid:false for any key carrying an allowedIps restriction.
     const key = makeKey({ allowedIps: ['10.0.0.0/24'] });
-    expect(controller.validate(key)).toEqual({ valid: true, role: key.role });
+    expect(controller.validate(key)).toEqual({ valid: true, role: key.role, mfaRequired: false });
   });
 
   it('returns valid:false when no key is attached (defense-in-depth)', () => {

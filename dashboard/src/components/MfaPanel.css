@@ -1,0 +1,129 @@
+.mfa-panel {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.mfa-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mfa-panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.mfa-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.mfa-status {
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.mfa-status.on {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+}
+.mfa-status.off {
+  color: var(--text-muted);
+  background: var(--bg-light);
+}
+
+.mfa-body {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mfa-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+}
+
+.mfa-qr {
+  width: 180px;
+  height: 180px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff; /* QR must stay on white for scanners, in both themes */
+  padding: 8px;
+}
+
+.mfa-secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.mfa-secret code {
+  font-family: monospace;
+  background: var(--bg-light);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.mfa-code-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.mfa-code-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mfa-code-row input {
+  font-size: 1.2rem;
+  letter-spacing: 0.3em;
+  width: 8em;
+  text-align: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+.mfa-code-row input.error {
+  border-color: var(--error);
+}
+
+.mfa-error {
+  color: var(--error);
+  font-size: 0.8rem;
+}
+
+.mfa-enabled-note {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.mfa-actions {
+  display: flex;
+  gap: 8px;
+}

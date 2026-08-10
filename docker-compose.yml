@@ -254,6 +254,13 @@ services:
       # Security
       - API_MASTER_KEY=${API_MASTER_KEY:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Brute-force lockout on API-key auth (per client IP). Enabled by default in the app; these
+      # forward host overrides for the threshold/window/block. Unset preserves the app defaults.
+      - AUTH_LOCKOUT_ENABLED=${AUTH_LOCKOUT_ENABLED:-}
+      - AUTH_LOCKOUT_THRESHOLD=${AUTH_LOCKOUT_THRESHOLD:-}
+      - AUTH_LOCKOUT_WINDOW_MS=${AUTH_LOCKOUT_WINDOW_MS:-}
+      - AUTH_LOCKOUT_BLOCK_MS=${AUTH_LOCKOUT_BLOCK_MS:-}
+      - AUTH_LOCKOUT_MAX_KEYS=${AUTH_LOCKOUT_MAX_KEYS:-}
       # Two-factor auth (TOTP). MFA_KEY is the server-side master secret (encrypts stored TOTP secrets
       # + signs dashboard session tokens); leave blank on a single box (auto-generated to data/.mfa-key),
       # set a shared 32-byte base64 value on multi-node. MFA_SESSION_TTL_MS: post-TOTP session lifetime.

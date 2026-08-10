@@ -8,6 +8,10 @@ export enum AuditAction {
   API_KEY_REVOKED = 'api_key_revoked',
   API_KEY_DELETED = 'api_key_deleted',
   API_KEY_AUTH_FAILED = 'api_key_auth_failed',
+  // Emitted once when a client IP crosses the failed-auth threshold and is locked out (see
+  // AuthLockoutService). Only the block-triggering failure writes a row — the subsequent rejected
+  // (429) attempts do not — so a sustained probe never turns lockout into an audit-write flood.
+  API_KEY_LOCKOUT = 'api_key_lockout',
 
   // Two-factor authentication (TOTP) events on an API key.
   MFA_ENROLLED = 'mfa_enrolled',

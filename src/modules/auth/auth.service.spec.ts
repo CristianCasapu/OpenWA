@@ -10,6 +10,7 @@ import { createHash, createHmac } from 'crypto';
 import * as fs from 'fs';
 import { AuthService, resolveSeedApiKey, bannerKeyLine } from './auth.service';
 import { ApiKeyUsageTracker } from './api-key-usage-tracker.service';
+import { AuthLockoutService } from './auth-lockout.service';
 import { ApiKey, ApiKeyRole } from './entities/api-key.entity';
 
 // Helpers
@@ -110,6 +111,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         ApiKeyUsageTracker,
+        AuthLockoutService,
         {
           provide: getRepositoryToken(ApiKey, 'main'),
           useValue: repository,
@@ -628,6 +630,93 @@ describe('AuthService', () => {
       (repository.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(service.validateApiKey('wrong-key')).rejects.toThrow(UnauthorizedException);
+    });
+
+    describe('brute-force lockout (per client IP)', () => {
+      const ATTACKER = '203.0.113.99';
+
+      beforeEach(() => {
+        // Tighten the threshold so the test locks out after a few attempts.
+        process.env.AUTH_LOCKOUT_THRESHOLD = '3';
+        process.env.AUTH_LOCKOUT_WINDOW_MS = '60000';
+        process.env.AUTH_LOCKOUT_BLOCK_MS = '60000';
+      });
+      afterEach(() => {
+        delete process.env.AUTH_LOCKOUT_THRESHOLD;
+        delete process.env.AUTH_LOCKOUT_WINDOW_MS;
+        delete process.env.AUTH_LOCKOUT_BLOCK_MS;
+      });
+
+      // A fresh service so it reads the tightened env above (config is read at construction).
+      const freshService = async (): Promise<AuthService> => {
+        const module = await Test.createTestingModule({
+          providers: [
+            AuthService,
+            ApiKeyUsageTracker,
+            AuthLockoutService,
+            { provide: getRepositoryToken(ApiKey, 'main'), useValue: repository },
+          ],
+        }).compile();
+        return module.get<AuthService>(AuthService);
+      };
+
+      it('locks out an IP with 429 after repeated invalid keys, before the DB lookup', async () => {
+        const svc = await freshService();
+        (repository.findOne as jest.Mock).mockResolvedValue(null); // every key is unknown
+
+        for (let i = 0; i < 3; i++) {
+          await expect(svc.validateApiKey('guess', ATTACKER)).rejects.toThrow(UnauthorizedException);
+        }
+        (repository.findOne as jest.Mock).mockClear();
+
+        // The 4th attempt is rejected by the lockout with 429 — and never reaches the hash lookup.
+        let caught: unknown;
+        try {
+          await svc.validateApiKey('guess', ATTACKER);
+        } catch (e) {
+          caught = e;
+        }
+        expect((caught as { getStatus?: () => number }).getStatus?.()).toBe(429);
+        expect(repository.findOne).not.toHaveBeenCalled();
+      });
+
+      it('does not lock out a different IP hitting the same wrong key', async () => {
+        const svc = await freshService();
+        (repository.findOne as jest.Mock).mockResolvedValue(null);
+
+        for (let i = 0; i < 3; i++) {
+          await expect(svc.validateApiKey('guess', ATTACKER)).rejects.toThrow(UnauthorizedException);
+        }
+        // A different source IP is unaffected — it gets the normal 401, not a 429.
+        await expect(svc.validateApiKey('guess', '198.51.100.2')).rejects.toThrow(UnauthorizedException);
+      });
+
+      it('a valid key clears the counter so earlier failures do not accumulate to a lockout', async () => {
+        const svc = await freshService();
+        const rawKey = 'good-key';
+        const key = createMockApiKey({ keyHash: hashKey(rawKey) });
+
+        // Two misses, then a hit (clears), then two more misses — never reaches the threshold of 3.
+        (repository.findOne as jest.Mock).mockResolvedValue(null);
+        await expect(svc.validateApiKey('miss', ATTACKER)).rejects.toThrow(UnauthorizedException);
+        await expect(svc.validateApiKey('miss', ATTACKER)).rejects.toThrow(UnauthorizedException);
+
+        (repository.findOne as jest.Mock).mockResolvedValue(key);
+        await expect(svc.validateApiKey(rawKey, ATTACKER)).resolves.toMatchObject({ id: key.id });
+
+        (repository.findOne as jest.Mock).mockResolvedValue(null);
+        await expect(svc.validateApiKey('miss', ATTACKER)).rejects.toThrow(UnauthorizedException);
+        // Still not locked out (counter was reset by the success).
+        await expect(svc.validateApiKey('miss', ATTACKER)).rejects.toThrow(UnauthorizedException);
+      });
+
+      it('does not track lockout when no client IP is provided', async () => {
+        const svc = await freshService();
+        (repository.findOne as jest.Mock).mockResolvedValue(null);
+        for (let i = 0; i < 5; i++) {
+          await expect(svc.validateApiKey('guess')).rejects.toThrow(UnauthorizedException); // 401, never 429
+        }
+      });
     });
 
     describe('API_KEY_PEPPER hash upgrade (non-breaking)', () => {

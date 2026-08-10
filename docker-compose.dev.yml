@@ -114,6 +114,11 @@ services:
       # raise this for large documents (e.g. BODY_SIZE_LIMIT=50mb). Blank keeps the app default of 25mb.
       - BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      - AUTH_LOCKOUT_ENABLED=${AUTH_LOCKOUT_ENABLED:-}
+      - AUTH_LOCKOUT_THRESHOLD=${AUTH_LOCKOUT_THRESHOLD:-}
+      - AUTH_LOCKOUT_WINDOW_MS=${AUTH_LOCKOUT_WINDOW_MS:-}
+      - AUTH_LOCKOUT_BLOCK_MS=${AUTH_LOCKOUT_BLOCK_MS:-}
+      - AUTH_LOCKOUT_MAX_KEYS=${AUTH_LOCKOUT_MAX_KEYS:-}
       # Two-factor auth (TOTP): server-side master secret + post-TOTP session TTL. Blank = auto key file.
       - MFA_KEY=${MFA_KEY:-}
       - MFA_SESSION_TTL_MS=${MFA_SESSION_TTL_MS:-}

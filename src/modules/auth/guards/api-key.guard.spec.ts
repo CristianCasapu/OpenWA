@@ -183,7 +183,7 @@ describe('ApiKeyGuard', () => {
     });
 
     it('bypasses the session check on an @MfaExempt() route (so an enrolled key can obtain a session)', async () => {
-      reflector.getAllAndOverride.mockImplementation((key: string) => (key === 'mfaExempt' ? true : undefined));
+      reflector.getAllAndOverride.mockImplementation((key: unknown) => (key === 'mfaExempt' ? true : undefined));
       (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ mfaEnabled: true }));
 
       const result = await guard.canActivate(createMockContext({ 'x-api-key': 'k' })); // no session header

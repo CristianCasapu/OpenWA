@@ -218,6 +218,12 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     'SESSION_LEASE_HEARTBEAT_MS',
     'SESSION_TAKEOVER_SWEEP_MS',
     'SESSION_PROXY_TIMEOUT_MS',
+    // Brute-force lockout knobs: each is read with a positive-or-default rule, so a 0/typo silently
+    // means the default instead of what the operator wrote.
+    'AUTH_LOCKOUT_THRESHOLD',
+    'AUTH_LOCKOUT_WINDOW_MS',
+    'AUTH_LOCKOUT_BLOCK_MS',
+    'AUTH_LOCKOUT_MAX_KEYS',
     // fail2ban jail knobs: a 0/garbage value would generate a jail with a broken window or an instant
     // (or never-lifting) ban, so require positive integers. Read with the same posInt clamp downstream.
     'FAIL2BAN_MAXRETRY',
@@ -301,6 +307,9 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     // Read by the SSRF guard's redirect loop with `=== 'true'`: a typo silently keeps the secure
     // default, but an accidental 'true'-ish string is not the flag the operator meant to audit.
     'PLUGIN_DOWNLOAD_ALLOW_INSECURE_REDIRECTS',
+    // Brute-force lockout master switch (default on). A typo like 'False' would leave it enabled,
+    // so validate it rather than silently ignore an intended disable.
+    'AUTH_LOCKOUT_ENABLED',
     // Read with `=== 'true'`, so a typo leaves sends unpaced — the silent failure this whole
     // feature exists to avoid, and invisible without this check.
     'SEND_PACING_ENABLED',

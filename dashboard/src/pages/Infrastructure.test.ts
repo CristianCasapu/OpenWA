@@ -63,6 +63,7 @@ const SAVED_CONFIG: SavedConfig = {
     sessionDataPath: '/data/custom-sessions',
     browserArgs: '--headless=new --custom-flag',
   },
+  fail2ban: { enabled: false, maxretry: 5, findtime: 600, bantime: 86400 },
 };
 
 const ENGINES: Engine[] = [

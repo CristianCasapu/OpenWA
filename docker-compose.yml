@@ -254,6 +254,13 @@ services:
       # Security
       - API_MASTER_KEY=${API_MASTER_KEY:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Intrusion prevention (fail2ban). Dashboard-managed; blank-forwarded so a dashboard change in
+      # data/.env.generated applies while a host value still pins. The app only GENERATES the host-side
+      # filter/jail under data/fail2ban — a host fail2ban must include them (see docs/31-fail2ban.md).
+      - FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED:-}
+      - FAIL2BAN_MAXRETRY=${FAIL2BAN_MAXRETRY:-}
+      - FAIL2BAN_FINDTIME=${FAIL2BAN_FINDTIME:-}
+      - FAIL2BAN_BANTIME=${FAIL2BAN_BANTIME:-}
       # Forward the plain-HTTP dashboard CSP override; unset preserves the application default.
       - CSP_UPGRADE_INSECURE_REQUESTS=${CSP_UPGRADE_INSECURE_REQUESTS:-}
       # Docker socket proxy (openwa-api never touches /var/run/docker.sock directly)

@@ -11311,6 +11311,36 @@
           "browserArgs"
         ]
       },
+      "InfraFail2banStatusDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether intrusion prevention is switched on.",
+            "example": false
+          },
+          "bannedCount": {
+            "type": "number",
+            "description": "Currently-banned IP count, from the host-produced status file (0 when absent).",
+            "example": 0
+          },
+          "bannedIps": {
+            "description": "Banned IPs, when the host status file lists them.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 time the host last wrote the status file."
+          }
+        },
+        "required": [
+          "enabled",
+          "bannedCount"
+        ]
+      },
       "InfraStatusResponseDto": {
         "type": "object",
         "properties": {
@@ -11338,6 +11368,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "fail2ban": {
+            "$ref": "#/components/schemas/InfraFail2banStatusDto"
           }
         },
         "required": [
@@ -11346,7 +11379,8 @@
           "queue",
           "storage",
           "engine",
-          "envPinned"
+          "envPinned",
+          "fail2ban"
         ]
       },
       "EngineLibraryDto": {
@@ -11635,6 +11669,36 @@
           "browserArgs"
         ]
       },
+      "InfraConfigFail2banDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": false
+          },
+          "maxretry": {
+            "type": "number",
+            "description": "Failures within findtime before an IP is banned.",
+            "example": 5
+          },
+          "findtime": {
+            "type": "number",
+            "description": "Sliding window in seconds.",
+            "example": 600
+          },
+          "bantime": {
+            "type": "number",
+            "description": "Ban duration in seconds (default 86400 = 24h).",
+            "example": 86400
+          }
+        },
+        "required": [
+          "enabled",
+          "maxretry",
+          "findtime",
+          "bantime"
+        ]
+      },
       "InfraConfigResponseDto": {
         "type": "object",
         "properties": {
@@ -11652,6 +11716,9 @@
           },
           "engine": {
             "$ref": "#/components/schemas/InfraConfigEngineDto"
+          },
+          "fail2ban": {
+            "$ref": "#/components/schemas/InfraConfigFail2banDto"
           }
         },
         "required": [
@@ -11659,7 +11726,8 @@
           "redis",
           "queue",
           "storage",
-          "engine"
+          "engine",
+          "fail2ban"
         ]
       },
       "DatabaseConfigDto": {
@@ -11788,6 +11856,26 @@
           }
         }
       },
+      "Fail2banConfigDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "maxretry": {
+            "type": "number",
+            "description": "Failures within findtime before an IP is banned"
+          },
+          "findtime": {
+            "type": "number",
+            "description": "Sliding window, in seconds, over which maxretry is counted"
+          },
+          "bantime": {
+            "type": "number",
+            "description": "Ban duration in seconds (default 86400 = 24h)"
+          }
+        }
+      },
       "SaveConfigDto": {
         "type": "object",
         "properties": {
@@ -11805,6 +11893,9 @@
           },
           "engine": {
             "$ref": "#/components/schemas/EngineConfigDto"
+          },
+          "fail2ban": {
+            "$ref": "#/components/schemas/Fail2banConfigDto"
           }
         }
       },

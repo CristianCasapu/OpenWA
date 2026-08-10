@@ -31,10 +31,13 @@ import { generatedEnvPath, readGeneratedEnv } from './generated-env';
 import {
   applyDatabaseSection,
   applyEngineSection,
+  applyFail2banSection,
   applyRedisSection,
   applyStorageSection,
   ConfigSectionContext,
+  FAIL2BAN_DEFAULTS,
 } from './config-sections';
+import { Fail2banConfigService } from './fail2ban-config.service';
 
 // The PUT /infra/config body DTOs live in ./dto/save-config.dto.ts: as *.dto.ts classes they are
 // covered by the input-coercion drift gate (src/common/utils/dto-strict-coercion.spec.ts), which
@@ -83,6 +86,7 @@ interface SavedConfigResponse {
     s3CredentialsSet: boolean;
   };
   engine: { type: string; headless: boolean; sessionDataPath: string; browserArgs: string };
+  fail2ban: { enabled: boolean; maxretry: number; findtime: number; bantime: number };
 }
 
 @ApiTags('infrastructure')
@@ -105,6 +109,10 @@ export class InfraConfigController {
     // call site then makes emission a no-op there instead of forcing every test to wire a mock.
     @Optional()
     private readonly auditService?: AuditService,
+    // Regenerates the host-side fail2ban filter/jail after a save. @Optional + appended last so the
+    // direct-construction unit tests that omit it keep working (the `?.` at the call site no-ops).
+    @Optional()
+    private readonly fail2banConfigService?: Fail2banConfigService,
   ) {}
 
   @Get('config')
@@ -154,6 +162,12 @@ export class InfraConfigController {
         sessionDataPath: saved.SESSION_DATA_PATH || '',
         browserArgs: saved.PUPPETEER_ARGS || '',
       },
+      fail2ban: {
+        enabled: saved.FAIL2BAN_ENABLED === 'true',
+        maxretry: Number(saved.FAIL2BAN_MAXRETRY) || FAIL2BAN_DEFAULTS.maxretry,
+        findtime: Number(saved.FAIL2BAN_FINDTIME) || FAIL2BAN_DEFAULTS.findtime,
+        bantime: Number(saved.FAIL2BAN_BANTIME) || FAIL2BAN_DEFAULTS.bantime,
+      },
     };
   }
 
@@ -192,6 +206,10 @@ export class InfraConfigController {
       const merged = this.mergeWithExisting(existing, ctx);
       this.assertProductionBootable(merged);
       this.persistGeneratedEnv(envPath, merged);
+      // Regenerate the host-side fail2ban filter/jail from the MERGED result (not process.env, which
+      // still holds the pre-save values until the next boot), so a toggle/threshold change on the
+      // Intrusion Prevention card takes effect on the host's next jail reload. Best-effort inside.
+      this.fail2banConfigService?.regenerate(merged);
       this.auditConfigSaved(config, profiles);
 
       return this.buildSaveResponse(envPath, profiles);
@@ -239,6 +257,10 @@ export class InfraConfigController {
 
     if (config.engine) {
       applyEngineSection(config.engine, existing, ctx, this.engineFactory);
+    }
+
+    if (config.fail2ban) {
+      applyFail2banSection(config.fail2ban, ctx);
     }
   }
 

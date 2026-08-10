@@ -50,10 +50,11 @@ export class EngineRegistry {
     // the registry stays a dumb port, and the newest engine is the one whose callbacks are live.
     const existing = this.engines.get(id);
     if (existing && existing !== engine) {
-      this.logger.error('Overwriting a live engine registration for a session — concurrent initializations raced', {
-        sessionId: id,
-        action: 'engine_registry_overwrite',
-      });
+      this.logger.error(
+        'Overwriting a live engine registration for a session — concurrent initializations raced',
+        undefined,
+        { sessionId: id, action: 'engine_registry_overwrite' },
+      );
     }
     this.engines.set(id, engine);
   }

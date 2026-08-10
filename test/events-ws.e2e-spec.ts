@@ -39,7 +39,8 @@ describe('Events gateway over a real socket (e2e)', () => {
     // listen() (not just init()): the gateway attaches to the app's HTTP server, and a socket.io
     // client needs a real listening port. Port 0 lets the OS pick a free one.
     await app.listen(0);
-    const address = app.getHttpServer().address() as { port: number };
+    const server = app.getHttpServer() as import('node:http').Server;
+    const address = server.address() as { port: number };
     baseUrl = `http://127.0.0.1:${address.port}`;
 
     const authService = app.get(AuthService);

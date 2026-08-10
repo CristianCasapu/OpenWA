@@ -114,6 +114,9 @@ services:
       # raise this for large documents (e.g. BODY_SIZE_LIMIT=50mb). Blank keeps the app default of 25mb.
       - BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Two-factor auth (TOTP): server-side master secret + post-TOTP session TTL. Blank = auto key file.
+      - MFA_KEY=${MFA_KEY:-}
+      - MFA_SESSION_TTL_MS=${MFA_SESSION_TTL_MS:-}
       # Intrusion prevention (fail2ban), dashboard-managed; blank-forwarded like the knobs above.
       - FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED:-}
       - FAIL2BAN_MAXRETRY=${FAIL2BAN_MAXRETRY:-}

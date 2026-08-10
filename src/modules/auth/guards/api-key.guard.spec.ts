@@ -7,6 +7,7 @@ import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../audit/entities/audit-log.entity';
 import { SecurityEventLogService } from '../../../common/security/security-event-log.service';
+import { MfaService } from '../mfa.service';
 
 function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
   return {
@@ -21,6 +22,9 @@ function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
     expiresAt: null,
     lastUsedAt: null,
     usageCount: 0,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaEnrolledAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -55,6 +59,7 @@ describe('ApiKeyGuard', () => {
   let configService: jest.Mocked<Partial<ConfigService>>;
   let auditService: jest.Mocked<Partial<AuditService>>;
   let securityLog: jest.Mocked<Pick<SecurityEventLogService, 'logWrongApiKey' | 'logInvalidRequest'>>;
+  let mfaService: jest.Mocked<Pick<MfaService, 'verifySessionToken'>>;
 
   function buildGuard(trustedProxies: string[] = []): ApiKeyGuard {
     configService = {
@@ -66,6 +71,7 @@ describe('ApiKeyGuard', () => {
       configService as ConfigService,
       auditService as AuditService,
       securityLog as unknown as SecurityEventLogService,
+      mfaService as unknown as MfaService,
     );
   }
 
@@ -86,6 +92,10 @@ describe('ApiKeyGuard', () => {
     securityLog = {
       logWrongApiKey: jest.fn(),
       logInvalidRequest: jest.fn(),
+    };
+
+    mfaService = {
+      verifySessionToken: jest.fn().mockReturnValue(null),
     };
 
     guard = buildGuard();
@@ -136,6 +146,59 @@ describe('ApiKeyGuard', () => {
 
     expect(result).toBe(true);
     expect(authService.validateApiKey).toHaveBeenCalledWith('my-bearer-key', '127.0.0.1', undefined);
+  });
+
+  describe('two-factor (MFA) enforcement', () => {
+    const mfaReq = async (headers: Record<string, string>): Promise<unknown> => {
+      const context = createMockContext(headers);
+      return guard.canActivate(context).catch((e: unknown) => e);
+    };
+
+    it('rejects an MFA-enabled key presented as a plain bearer (401 MFA_REQUIRED)', async () => {
+      reflector.getAllAndOverride.mockReturnValue(undefined); // not public/role/scoped/exempt
+      (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ id: 'kid', mfaEnabled: true }));
+
+      const err = await mfaReq({ 'x-api-key': 'k' });
+      expect(err).toBeInstanceOf(UnauthorizedException);
+      expect((err as UnauthorizedException).getResponse()).toMatchObject({ code: 'MFA_REQUIRED' });
+      expect(mfaService.verifySessionToken).toHaveBeenCalled();
+    });
+
+    it('accepts an MFA-enabled key with a valid session token for that key', async () => {
+      reflector.getAllAndOverride.mockReturnValue(undefined);
+      (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ id: 'kid', mfaEnabled: true }));
+      mfaService.verifySessionToken.mockReturnValue({ keyId: 'kid' });
+
+      const result = await guard.canActivate(createMockContext({ 'x-api-key': 'k', 'x-dashboard-session': 'tok' }));
+      expect(result).toBe(true);
+    });
+
+    it('rejects when the session token belongs to a DIFFERENT key', async () => {
+      reflector.getAllAndOverride.mockReturnValue(undefined);
+      (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ id: 'kid', mfaEnabled: true }));
+      mfaService.verifySessionToken.mockReturnValue({ keyId: 'someone-else' });
+
+      const err = await mfaReq({ 'x-api-key': 'k', 'x-dashboard-session': 'tok' });
+      expect((err as UnauthorizedException).getResponse()).toMatchObject({ code: 'MFA_REQUIRED' });
+    });
+
+    it('bypasses the session check on an @MfaExempt() route (so an enrolled key can obtain a session)', async () => {
+      reflector.getAllAndOverride.mockImplementation((key: string) => (key === 'mfaExempt' ? true : undefined));
+      (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ mfaEnabled: true }));
+
+      const result = await guard.canActivate(createMockContext({ 'x-api-key': 'k' })); // no session header
+      expect(result).toBe(true);
+      expect(mfaService.verifySessionToken).not.toHaveBeenCalled();
+    });
+
+    it('never requires a session for a key without MFA', async () => {
+      reflector.getAllAndOverride.mockReturnValue(undefined);
+      (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey({ mfaEnabled: false }));
+
+      const result = await guard.canActivate(createMockContext({ 'x-api-key': 'k' }));
+      expect(result).toBe(true);
+      expect(mfaService.verifySessionToken).not.toHaveBeenCalled();
+    });
   });
 
   it('should reject when API key validation fails', async () => {

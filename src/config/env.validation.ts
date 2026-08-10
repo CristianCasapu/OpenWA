@@ -223,6 +223,9 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     'FAIL2BAN_MAXRETRY',
     'FAIL2BAN_FINDTIME',
     'FAIL2BAN_BANTIME',
+    // 2FA session-token lifetime: 0 would mint tokens that are already expired (every dashboard action
+    // re-prompts for a code), so require a positive integer. Read with the same positive-or-default rule.
+    'MFA_SESSION_TTL_MS',
   ]) {
     checkPositiveInt(key);
   }

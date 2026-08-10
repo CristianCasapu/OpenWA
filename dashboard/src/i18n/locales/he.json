@@ -184,7 +184,15 @@
     "help": "צריך עזרה?",
     "viewDocs": "לצפייה בתיעוד",
     "footer": "נבנה באהבה על ידי Yudhi Armyndharis וקהילת OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "קוד אימות דו-שלבי",
+      "codePlaceholder": "000000",
+      "hint": "הזן את הקוד בן 6 הספרות מאפליקציית האימות.",
+      "verify": "אמת",
+      "back": "חזרה",
+      "invalidCode": "קוד לא תקין. נסה שוב."
+    }
   },
   "dashboard": {
     "title": "דאשבורד",
@@ -551,6 +559,30 @@
       "copy": "העתקה",
       "revoke": "ביטול",
       "delete": "מחיקה"
+    },
+    "mfa": {
+      "title": "אימות דו-שלבי",
+      "subtitle": "הגן על מפתח הניהול הזה עם אפליקציית TOTP (Google Authenticator וכו׳).",
+      "on": "פעיל",
+      "off": "כבוי",
+      "interactiveOnlyWarning": "הפעלת אימות דו-שלבי הופכת את המפתח לאינטראקטיבי בלבד — הוא יפסיק לעבוד עם לקוחות API ללא ממשק. שמור מפתח מפעיל נפרד לאוטומציה.",
+      "enable": "הפעל אימות דו-שלבי",
+      "setupFailed": "לא ניתן להתחיל את הגדרת האימות הדו-שלבי",
+      "scanInstruction": "סרוק קוד QR זה עם אפליקציית האימות, או הזן את המפתח ידנית.",
+      "qrAlt": "קוד QR לאימות דו-שלבי",
+      "manualKey": "מפתח ידני:",
+      "copy": "העתק",
+      "secretCopied": "הסוד הועתק",
+      "enterCodeToConfirm": "הזן את הקוד בן 6 הספרות לאישור",
+      "codePlaceholder": "000000",
+      "invalidCode": "קוד לא תקין. נסה שוב.",
+      "confirmEnable": "אשר והפעל",
+      "enabledToast": "אימות דו-שלבי הופעל",
+      "enabledNote": "אימות דו-שלבי פעיל עבור מפתח זה. תזין קוד מאפליקציית האימות בכל כניסה ללוח הבקרה.",
+      "disable": "בטל אימות דו-שלבי",
+      "enterCodeToDisable": "הזן קוד נוכחי כדי לבטל את האימות הדו-שלבי",
+      "confirmDisable": "בטל",
+      "disabledToast": "אימות דו-שלבי בוטל"
     }
   },
   "logs": {

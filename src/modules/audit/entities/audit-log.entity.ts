@@ -9,6 +9,12 @@ export enum AuditAction {
   API_KEY_DELETED = 'api_key_deleted',
   API_KEY_AUTH_FAILED = 'api_key_auth_failed',
 
+  // Two-factor authentication (TOTP) events on an API key.
+  MFA_ENROLLED = 'mfa_enrolled',
+  MFA_DISABLED = 'mfa_disabled',
+  MFA_VERIFIED = 'mfa_verified',
+  MFA_FAILED = 'mfa_failed',
+
   // Rate-limit enforcement (sampled: at most one row per subject+kind per minute — see
   // EventsGateway — so enforcing a limit never becomes an audit-write flood of its own).
   RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',

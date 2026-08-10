@@ -6,16 +6,19 @@ import { AuthService } from './auth.service';
 import { ApiKeyUsageTracker } from './api-key-usage-tracker.service';
 import { AuthController } from './auth.controller';
 import { AuthValidateController } from './auth-validate.controller';
+import { AuthMfaController } from './auth-mfa.controller';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { MfaService } from './mfa.service';
 import { ProxyAwareThrottlerGuard } from '../../common/security/proxy-aware-throttler.guard';
 
 @Global()
 @Module({
   imports: [TypeOrmModule.forFeature([ApiKey], 'main')],
-  controllers: [AuthController, AuthValidateController],
+  controllers: [AuthController, AuthValidateController, AuthMfaController],
   providers: [
     AuthService,
     ApiKeyUsageTracker,
+    MfaService,
     {
       provide: APP_GUARD,
       useClass: ProxyAwareThrottlerGuard,
@@ -25,6 +28,6 @@ import { ProxyAwareThrottlerGuard } from '../../common/security/proxy-aware-thro
       useClass: ApiKeyGuard,
     },
   ],
-  exports: [AuthService],
+  exports: [AuthService, MfaService],
 })
 export class AuthModule {}

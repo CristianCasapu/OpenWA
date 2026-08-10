@@ -254,6 +254,11 @@ services:
       # Security
       - API_MASTER_KEY=${API_MASTER_KEY:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Two-factor auth (TOTP). MFA_KEY is the server-side master secret (encrypts stored TOTP secrets
+      # + signs dashboard session tokens); leave blank on a single box (auto-generated to data/.mfa-key),
+      # set a shared 32-byte base64 value on multi-node. MFA_SESSION_TTL_MS: post-TOTP session lifetime.
+      - MFA_KEY=${MFA_KEY:-}
+      - MFA_SESSION_TTL_MS=${MFA_SESSION_TTL_MS:-}
       # Intrusion prevention (fail2ban). Dashboard-managed; blank-forwarded so a dashboard change in
       # data/.env.generated applies while a host value still pins. The app only GENERATES the host-side
       # filter/jail under data/fail2ban — a host fail2ban must include them (see docs/31-fail2ban.md).

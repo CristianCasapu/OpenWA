@@ -29,6 +29,7 @@ import {
   useRevokeApiKeyMutation,
 } from '../hooks/queries';
 import { PageHeader } from '../components/PageHeader';
+import { MfaPanel } from '../components/MfaPanel';
 import { Modal } from '../components/Modal';
 import { useToast } from '../hooks/useToast';
 import { copyToClipboard } from '../utils/clipboard';
@@ -237,6 +238,8 @@ export function ApiKeys() {
           </button>
         }
       />
+
+      <MfaPanel />
 
       {apiKeysError && (
         <div className="error-banner" role="alert">

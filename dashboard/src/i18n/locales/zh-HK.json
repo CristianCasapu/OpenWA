@@ -177,7 +177,15 @@
     "help": "需要協助？",
     "viewDocs": "查看文件",
     "footer": "由 Yudhi Armyndharis 及 OpenWA 社群用 ❤️ 打造",
-    "version": "v{{version}} · {{date}}"
+    "version": "v{{version}} · {{date}}",
+    "mfa": {
+      "title": "兩步驗證碼",
+      "codePlaceholder": "000000",
+      "hint": "輸入驗證器應用程式中的 6 位驗證碼。",
+      "verify": "驗證",
+      "back": "返回",
+      "invalidCode": "驗證碼無效，請重試。"
+    }
   },
   "dashboard": {
     "title": "控制面板",
@@ -542,6 +550,30 @@
       "copy": "複製",
       "revoke": "撤銷",
       "delete": "刪除"
+    },
+    "mfa": {
+      "title": "兩步驗證",
+      "subtitle": "使用 TOTP 應用程式（Google 驗證器等）保護此管理員金鑰。",
+      "on": "已開啟",
+      "off": "已關閉",
+      "interactiveOnlyWarning": "啟用兩步驗證後，此金鑰將變為僅互動使用——它將無法用於無介面的 API 用戶端。請為自動化保留一個獨立的操作員金鑰。",
+      "enable": "啟用兩步驗證",
+      "setupFailed": "無法開始兩步驗證設定",
+      "scanInstruction": "用驗證器應用程式掃描此 QR code，或手動輸入金鑰。",
+      "qrAlt": "兩步驗證 QR code",
+      "manualKey": "手動金鑰：",
+      "copy": "複製",
+      "secretCopied": "密鑰已複製",
+      "enterCodeToConfirm": "輸入 6 位驗證碼以確認",
+      "codePlaceholder": "000000",
+      "invalidCode": "驗證碼無效，請重試。",
+      "confirmEnable": "確認並啟用",
+      "enabledToast": "兩步驗證已啟用",
+      "enabledNote": "此金鑰已啟用兩步驗證。每次登入儀表板時，你都需要輸入驗證器中的驗證碼。",
+      "disable": "停用兩步驗證",
+      "enterCodeToDisable": "輸入目前的驗證碼以停用兩步驗證",
+      "confirmDisable": "停用",
+      "disabledToast": "兩步驗證已停用"
     }
   },
   "logs": {

@@ -124,6 +124,12 @@ export const BLANK_SHADOWED_ENV_KEYS: string[] = [
   'WWEBJS_WEB_VERSION',
   'WWEBJS_WEB_VERSION_REMOTE_PATH',
   'WWEBJS_AUTH_TIMEOUT_MS',
+  // Intrusion prevention (fail2ban). Dashboard-managed and compose blank-forwarded like the rate-limit
+  // knobs, so a dashboard change saved to data/.env.generated applies while a host value still pins.
+  'FAIL2BAN_ENABLED',
+  'FAIL2BAN_MAXRETRY',
+  'FAIL2BAN_FINDTIME',
+  'FAIL2BAN_BANTIME',
 ];
 
 export function clearBlankEnv(env: NodeJS.ProcessEnv, keys: string[]): void {

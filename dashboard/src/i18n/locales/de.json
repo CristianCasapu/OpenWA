@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Verbunden",
       "disconnected": "Getrennt",
-      "disabled": "Deaktiviert"
+      "disabled": "Deaktiviert",
+      "enabled": "Aktiviert"
     },
     "envPinNote": "Durch die Umgebungsvariable {{name}} festgelegt — dies ist der aktuell verwendete Wert. Änderungen im Dashboard werden erst wirksam, wenn diese Variable entfernt wird.",
     "pendingRestartNote": "Gespeichert, aber noch nicht übernommen — starten Sie den Server neu, damit diese Änderung wirksam wird.",
@@ -789,7 +790,26 @@
     "toasts": {
       "saveFailed": "Speichern fehlgeschlagen"
     },
-    "statusLoadError": "Der aktuelle Infrastrukturstatus konnte nicht geladen werden. Aktualisiere die Seite und versuche es erneut."
+    "statusLoadError": "Der aktuelle Infrastrukturstatus konnte nicht geladen werden. Aktualisiere die Seite und versuche es erneut.",
+    "fail2ban": {
+      "title": "Angriffsschutz (fail2ban)",
+      "description": "Sperrt IPs, die wiederholt einen falschen API-Schlüssel oder fehlerhafte Anfragen senden. OpenWA erzeugt den fail2ban-Filter und die Jail; ein fail2ban-Dienst auf dem Host muss sie einbinden, um Sperren durchzusetzen.",
+      "enable": "fail2ban-Jail aktivieren",
+      "enableDesc": "Erzeugt die Jail als aktiviert. Das fail2ban des Hosts muss die erzeugten Dateien dennoch einbinden.",
+      "maxretry": "Maximale Versuche",
+      "maxretryDesc": "Fehlversuche innerhalb des Zeitfensters, bevor eine IP gesperrt wird.",
+      "findtime": "Erkennungsfenster (Sekunden)",
+      "findtimeDesc": "Gleitendes Fenster, über das Fehlversuche gezählt werden.",
+      "bantime": "Sperrdauer (Sekunden)",
+      "bantimeDesc": "Wie lange eine gesperrte IP verworfen wird. Standard 86400 (24 Stunden).",
+      "bannedCount": "Derzeit {{count}} IP(s) gesperrt",
+      "updatedAt": "aktualisiert {{time}}",
+      "noStatusFile": "noch kein Host-Status",
+      "hostNote": "OpenWA kann fail2ban nicht selbst ausführen. Installiere fail2ban auf dem Host, binde die erzeugten Dateien ein und lade fail2ban neu.",
+      "snippetCopied": "Host-Einrichtungsbefehle kopiert",
+      "copySnippet": "Host-Einrichtung kopieren",
+      "docs": "Einrichtungsanleitung"
+    }
   },
   "plugins": {
     "title": "Plugins",

@@ -471,6 +471,12 @@ export interface InfraStatus {
    * Optional only because a dashboard can be served by a gateway that predates the field.
    */
   envPinned?: string[];
+  /**
+   * Intrusion prevention (fail2ban). `enabled` is the configured intent; the ban figures come from a
+   * host-produced status file (the app cannot run fail2ban-client), degrading to zeros when it is
+   * absent. Optional only because a dashboard can be served by a gateway that predates the field.
+   */
+  fail2ban?: { enabled: boolean; bannedCount: number; bannedIps?: string[]; updatedAt?: string };
 }
 
 // Saved infrastructure config (from data/.env.generated) used to hydrate the form.
@@ -501,6 +507,7 @@ export interface SavedConfig {
     s3CredentialsSet: boolean;
   };
   engine: { type: string; headless: boolean; sessionDataPath: string; browserArgs: string };
+  fail2ban: { enabled: boolean; maxretry: number; findtime: number; bantime: number };
 }
 
 export interface SaveConfigPayload {
@@ -542,6 +549,12 @@ export interface SaveConfigPayload {
     headless?: boolean;
     sessionDataPath?: string;
     browserArgs?: string;
+  };
+  fail2ban?: {
+    enabled?: boolean;
+    maxretry?: number;
+    findtime?: number;
+    bantime?: number;
   };
 }
 

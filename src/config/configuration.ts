@@ -298,6 +298,16 @@ export default () => ({
       .filter(Boolean),
   },
 
+  // Intrusion prevention (fail2ban). The app cannot run fail2ban or touch the host firewall (see
+  // docs/31-fail2ban.md); it only GENERATES the host-side filter/jail from these knobs and reads a
+  // host-produced status file. Defaults: fail2ban.config.service.ts FAIL2BAN_DEFAULTS (bantime 24h).
+  fail2ban: {
+    enabled: process.env.FAIL2BAN_ENABLED === 'true',
+    maxretry: parseInt(process.env.FAIL2BAN_MAXRETRY || '5', 10),
+    findtime: parseInt(process.env.FAIL2BAN_FINDTIME || '600', 10),
+    bantime: parseInt(process.env.FAIL2BAN_BANTIME || '86400', 10),
+  },
+
   // Plugin platform configuration
   plugins: {
     // Where installed plugin packages live on disk. This MUST resolve to the same tree as the plugin

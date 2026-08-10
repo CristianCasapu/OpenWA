@@ -346,6 +346,36 @@ test('a staged attachment survives closing and reopening the same room', async (
   assert.equal(container.querySelector('.preview-filename')?.textContent, 'contract.pdf');
 });
 
+test('a failed send gives the typed text back for a retry', async () => {
+  const { screen, fireEvent, within, waitFor } = rtl;
+  resetFetchCalls();
+  const baseFetch = globalThis.fetch;
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if ((init?.method ?? 'GET') === 'POST' && url.includes('/messages/send-text')) {
+      return Promise.resolve(jsonResponse({ message: 'engine down' }, 500));
+    }
+    return baseFetch(input, init);
+  };
+
+  try {
+    const { container } = renderChats();
+    await screen.findByText('Main (15551234567)');
+    fireEvent.click(await screen.findByText('Alice'));
+    await within(container.querySelector('.room-messages') as HTMLElement).findByText('hello from alice');
+
+    const input = screen.getByPlaceholderText('Type a message...') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'message that fails' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    // The optimistic clear is right for the happy path; on failure the text must come back —
+    // previously its only copy lived in a bubble marked failed, so the user retyped from scratch.
+    await waitFor(() => assert.equal(input.value, 'message that fails'));
+  } finally {
+    globalThis.fetch = baseFetch;
+  }
+});
+
 test('switching the UI language keeps the selected session and open chat intact', async () => {
   const { screen, fireEvent, within } = rtl;
   resetFetchCalls();

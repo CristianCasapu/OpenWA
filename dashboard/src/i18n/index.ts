@@ -13,6 +13,7 @@ import fr from './locales/fr.json';
 import it from './locales/it.json';
 import ptBR from './locales/pt-BR.json';
 import ko from './locales/ko.json';
+import ro from './locales/ro.json';
 
 export const supportedLanguages = [
   'en',
@@ -27,6 +28,7 @@ export const supportedLanguages = [
   'it',
   'pt-BR',
   'ko',
+  'ro',
 ] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
@@ -45,6 +47,7 @@ export const languageOptions: Array<{ value: SupportedLanguage; label: string; c
   { value: 'it', label: 'Italiano', compactLabel: 'IT' },
   { value: 'pt-BR', label: 'Português (Brasil)', compactLabel: 'PT' },
   { value: 'ko', label: '한국어', compactLabel: 'KO' },
+  { value: 'ro', label: 'Română', compactLabel: 'RO' },
 ];
 
 export function resolveSupportedLanguage(lang?: string): SupportedLanguage {
@@ -80,6 +83,7 @@ void i18n
       it: { translation: it },
       'pt-BR': { translation: ptBR },
       ko: { translation: ko },
+      ro: { translation: ro },
     },
     fallbackLng: 'en',
     supportedLngs: supportedLanguages as unknown as string[],

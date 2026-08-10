@@ -1,0 +1,961 @@
+{
+  "toast": {
+    "connectionLost": {
+      "title": "Conexiunea cu serverul a fost pierdută",
+      "message": "Serverul backend nu poate fi contactat. Verifică dacă serverul rulează."
+    }
+  },
+  "common": {
+    "appName": "OpenWA",
+    "loading": "Se încarcă...",
+    "cancel": "Anulează",
+    "delete": "Șterge",
+    "create": "Creează",
+    "close": "Închide",
+    "showApiKey": "Afișează cheia API",
+    "hideApiKey": "Ascunde cheia API",
+    "search": "Caută",
+    "status": "Stare",
+    "name": "Nume",
+    "role": "Rol",
+    "url": "URL",
+    "port": "Port",
+    "host": "Gazdă",
+    "username": "Nume de utilizator",
+    "password": "Parolă",
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "connected": "Conectat",
+    "disconnected": "Deconectat",
+    "never": "Niciodată",
+    "justNow": "Chiar acum",
+    "minAgo": "acum {{count}} min",
+    "hoursAgo": "acum {{count}} ore",
+    "optional": "opțional",
+    "language": "Limbă",
+    "back": "Înapoi",
+    "next": "Înainte",
+    "previous": "Anterior",
+    "expand": "Extinde",
+    "collapse": "Restrânge",
+    "logout": "Deconectare",
+    "refresh": "Reîmprospătează",
+    "errorGeneric": "A apărut o eroare",
+    "unknownError": "Eroare necunoscută",
+    "retry": "Reîncearcă"
+  },
+  "theme": {
+    "light": "Luminos",
+    "dark": "Întunecat",
+    "system": "Sistem",
+    "label": "Temă: {{value}}",
+    "appearance": "Aspect",
+    "mode": "Mod",
+    "toggleTo": "Comută la {{value}}"
+  },
+  "nav": {
+    "dashboard": "Panou de control",
+    "sessions": "Sesiuni",
+    "chats": "Conversații",
+    "webhooks": "Webhook-uri",
+    "templates": "Șabloane",
+    "apiKeys": "Chei API",
+    "messageTester": "Testare mesaje",
+    "infrastructure": "Infrastructură",
+    "plugins": "Plugin-uri",
+    "logs": "Jurnale"
+  },
+  "chats": {
+    "media": {
+      "location": "Locație",
+      "call": "Apel",
+      "callMissed": "Apel pierdut",
+      "callVideo": "Apel video",
+      "callVideoMissed": "Apel video pierdut",
+      "omitted": "Media",
+      "image": "Imagine"
+    },
+    "subtitle": "Trimite și răspunde la mesaje WhatsApp în timp real",
+    "noSessionsTitle": "Nicio sesiune conectată",
+    "noSessionsDesc": "Conectează mai întâi o sesiune WhatsApp din meniul <1>Sesiuni</1> pentru a folosi funcția de chat.",
+    "sessionLabel": "Sesiune WhatsApp",
+    "noPhone": "Fără telefon",
+    "searchPlaceholder": "Caută conversații...",
+    "loadingChats": "Se încarcă conversațiile...",
+    "empty": "Nicio conversație",
+    "noMessageYet": "Niciun mesaj încă",
+    "unreadBadge": "{{count}} mesaj necitit",
+    "unreadBadge_few": "{{count}} mesaje necitite",
+    "unreadBadge_other": "{{count}} de mesaje necitite",
+    "loadingMessages": "Se încarcă mesajele...",
+    "noMessagesInChat": "Niciun mesaj încă. Trimite primul mesaj pentru a începe!",
+    "downloadDocument": "Descarcă documentul",
+    "actions": {
+      "reply": "Răspunde",
+      "react": "Reacționează",
+      "delete": "Șterge mesajul"
+    },
+    "replyingTo": "Răspuns către {{name}}",
+    "you": "Tu",
+    "youPrefix": "Tu: ",
+    "yesterday": "Ieri",
+    "attachTitle": "Trimite fișier / imagine",
+    "emojiTitle": "Alege un emoji",
+    "captionPlaceholder": "Adaugă o descriere...",
+    "messagePlaceholder": "Scrie un mesaj...",
+    "noPermission": "Nu ai permisiunea de a trimite mesaje",
+    "send": "Trimite",
+    "placeholderTitle": "Începe conversația",
+    "placeholderDesc": "Alege o conversație pentru a citi și a răspunde.",
+    "scrollToBottom": "Derulează la cele mai recente",
+    "groupSubtitle": "Grup",
+    "privateContactSubtitle": "Contact privat",
+    "deleteConfirm": "Ștergi acest mesaj pentru toată lumea?",
+    "messageDeleted": "🚫 Acest mesaj a fost șters",
+    "messageMasked": "🔒 Mascat de WhatsApp pentru dispozitivele conectate — verifică telefonul principal",
+    "kind": {
+      "group": "Grup",
+      "channel": "Canal",
+      "status": "Status",
+      "broadcast": "Difuzare"
+    },
+    "tab": {
+      "chats": "Conversații",
+      "channels": "Canale",
+      "status": "Status"
+    },
+    "status": {
+      "itemCount": "{{count}} actualizare",
+      "itemCount_few": "{{count}} actualizări",
+      "itemCount_other": "{{count}} de actualizări",
+      "empty": "Niciun contact nu are un status activ.",
+      "loadError": "Statusurile nu au putut fi încărcate.",
+      "mediaUnavailable": "Media indisponibilă",
+      "compose": "Postează un status",
+      "composeText": "Text",
+      "composeImage": "Imagine",
+      "recipients": "Cine poate vedea",
+      "recipientsHint": "Baileys necesită o listă de destinatari; whatsapp-web.js folosește audiența de confidențialitate a statusului tău.",
+      "noContacts": "Niciun contact găsit",
+      "caption": "Descriere",
+      "backgroundColor": "Culoare de fundal",
+      "font": "Font",
+      "fontDefault": "Implicit",
+      "orLabel": "sau",
+      "post": "Postează",
+      "posted": "Status postat",
+      "postFailed": "Statusul nu a putut fi postat"
+    },
+    "channels": {
+      "notSupported": "Canalele nu sunt acceptate pe motorul Baileys.",
+      "empty": "Nu ești abonat la niciun canal încă.",
+      "notReady": "Sesiunea nu este pregătită încă.",
+      "subscribers": "{{count}} abonat",
+      "subscribers_few": "{{count}} abonați",
+      "subscribers_other": "{{count}} de abonați"
+    },
+    "errors": {
+      "loadSessions": "Sesiunile nu au putut fi încărcate",
+      "loadChats": "Conversațiile nu au putut fi încărcate",
+      "markRead": "Conversația nu a putut fi marcată ca citită",
+      "send": "Mesajul nu a putut fi trimis",
+      "react": "Reacția la mesaj a eșuat",
+      "delete": "Mesajul nu a putut fi șters"
+    },
+    "loadMessagesError": "Mesajele nu au putut fi încărcate. Verifică jurnalele serverului."
+  },
+  "errorBoundary": {
+    "title": "Ceva nu a mers bine",
+    "description": "Panoul de control a întâmpinat o eroare neașteptată.",
+    "reload": "Reîncarcă panoul"
+  },
+  "login": {
+    "apiKey": "Cheie API",
+    "apiKeyPlaceholder": "Introdu cheia API",
+    "apiKeyRequired": "Cheia API este obligatorie",
+    "connect": "Conectare",
+    "connecting": "Se conectează...",
+    "invalidKey": "Cheie API invalidă",
+    "connectionError": "Nu se poate stabili conexiunea cu serverul. Încearcă din nou.",
+    "help": "Ai nevoie de ajutor?",
+    "viewDocs": "Vezi documentația",
+    "footer": "Realizat cu ❤️ de Yudhi Armyndharis și comunitatea OpenWA",
+    "version": "v{{version}} · {{date}}"
+  },
+  "dashboard": {
+    "title": "Panou de control",
+    "subtitle": "Privire de ansamblu asupra sesiunilor și activității tale WhatsApp",
+    "stats": {
+      "activeSessions": "Sesiuni conectate",
+      "sessionsDetail": "{{running}} active · {{total}} în total",
+      "messagesToday": "Mesaje astăzi",
+      "webhooksConfigured": "Webhook-uri configurate",
+      "totalMessages": "Total mesaje"
+    },
+    "sessionsOverview": "Prezentare sesiuni",
+    "showingSessions": "Se afișează {{shown}} din {{total}} sesiuni",
+    "columns": {
+      "sessionId": "ID sesiune",
+      "phone": "Număr de telefon",
+      "status": "Stare",
+      "lastActive": "Ultima activitate",
+      "actions": "Acțiuni"
+    },
+    "noSessions": "Nicio sesiune găsită. Creează una pentru a începe.",
+    "view": "Vezi",
+    "disconnect": "Deconectează",
+    "errorPrefix": "Eroare: {{message}}",
+    "loadError": "Datele nu au putut fi încărcate",
+    "charts": {
+      "title": "Statistici mesaje",
+      "period": {
+        "24h": "24h",
+        "7d": "7z",
+        "30d": "30z"
+      },
+      "overTime": "Mesaje în timp",
+      "byType": "Mesaje după tip",
+      "topChats": "Top conversații",
+      "sent": "Trimise",
+      "received": "Primite",
+      "messages": "Mesaje",
+      "empty": "Nicio activitate de mesaje în această perioadă.",
+      "error": "Statisticile mesajelor nu au putut fi încărcate. Verifică jurnalele serverului."
+    }
+  },
+  "sessionStatus": {
+    "created": "Nouă",
+    "idle": "Inactivă",
+    "initializing": "Pornire...",
+    "connecting": "Se conectează...",
+    "qr_ready": "Scanează QR",
+    "ready": "Conectată",
+    "disconnected": "Deconectată",
+    "action_required": "Acțiune necesară",
+    "failed": "Eșuată",
+    "authenticating": "Autentificare..."
+  },
+  "sessions": {
+    "title": "Sesiuni",
+    "subtitle": "Gestionează sesiunile WhatsApp și conexiunile prin cod QR",
+    "newSession": "Sesiune nouă",
+    "searchPlaceholder": "Caută sesiuni...",
+    "filter": {
+      "all": "Toate stările",
+      "active": "Active (conectate)",
+      "inactive": "Inactive",
+      "connecting": "În curs de conectare"
+    },
+    "empty": {
+      "title": "Nicio sesiune găsită",
+      "description": "Creează o sesiune nouă pentru a începe"
+    },
+    "create": {
+      "title": "Creează o sesiune nouă",
+      "label": "Nume sesiune",
+      "placeholder": "ex.: marketing-bot",
+      "hint": "Folosește doar litere mici, cifre și cratime. Exemplu: <code>customer-support</code>, <code>bot-1</code>",
+      "invalidChars": "Caractere invalide. Sunt permise doar litere mici, cifre și cratime.",
+      "tooLong": "Numele trebuie să aibă cel mult 50 de caractere ({{length}}/50).",
+      "duplicate": "Există deja o sesiune cu acest nume.",
+      "successTitle": "Sesiune creată",
+      "successDesc": "Sesiunea \"{{name}}\" a fost creată cu succes",
+      "errorTitle": "Creare eșuată",
+      "errorDefault": "Sesiunea nu a putut fi creată"
+    },
+    "delete": {
+      "title": "Confirmă ștergerea",
+      "message": "Sigur vrei să ștergi sesiunea <strong>\"{{name}}\"</strong>?",
+      "warning": "Această acțiune nu poate fi anulată.",
+      "successTitle": "Sesiune ștearsă",
+      "successDescNamed": "Sesiunea \"{{name}}\" a fost ștearsă",
+      "successDescGeneric": "Sesiunea a fost ștearsă",
+      "errorTitle": "Ștergere eșuată",
+      "errorDefault": "Sesiunea nu a putut fi ștearsă"
+    },
+    "start": {
+      "teardownPendingTitle": "Sesiunea pornește",
+      "teardownPending": "O curățare a datelor de autentificare pentru această sesiune este încă în curs. Așteaptă un moment și încearcă din nou."
+    },
+    "qr": {
+      "title": "Scanează codul QR",
+      "step1": "<strong>1.</strong> Deschide WhatsApp pe telefon",
+      "step2": "<strong>2.</strong> Atinge <strong>Meniu</strong> → <strong>Dispozitive conectate</strong>",
+      "step3": "<strong>3.</strong> Atinge <strong>Conectează un dispozitiv</strong> și scanează acest QR",
+      "autoRefresh": "Codul QR se actualizează automat la fiecare 5 secunde",
+      "generating": "Se generează codul QR...",
+      "preparing": "Se pregătește codul QR...",
+      "showQr": "Afișează QR",
+      "loading": "Se încarcă...",
+      "scanToConnect": "Scanează codul QR pentru a te conecta"
+    },
+    "details": {
+      "title": "Detalii sesiune",
+      "name": "Nume",
+      "status": "Stare",
+      "sessionId": "ID sesiune",
+      "phone": "Număr de telefon",
+      "phoneNone": "Neconectat",
+      "created": "Creată",
+      "lastActive": "Ultima activitate",
+      "autoRejectCalls": "Respinge automat apelurile",
+      "autoRejectCallsHint": "Apelurile primite sunt respinse imediat ce sună. Webhook-ul call.received se declanșează totuși mai întâi. Se aplică la următorul apel — nu este nevoie de repornire."
+    },
+    "actions": {
+      "view": "Vezi",
+      "start": "Pornește",
+      "stop": "Oprește",
+      "reconnect": "Reconectează",
+      "unlink": "Dezasociază",
+      "delete": "Șterge",
+      "killStuck": "Oprire forțată"
+    },
+    "toasts": {
+      "readyTitle": "Sesiune pregătită",
+      "readyDesc": "Sesiunea WhatsApp este acum conectată",
+      "disconnectedTitle": "Sesiune deconectată",
+      "disconnectedDesc": "Sesiunea WhatsApp a fost deconectată",
+      "actionRequiredTitle": "Acțiune necesară",
+      "actionRequiredDesc": "Această sesiune necesită atenția ta. Deschide sesiunea pentru a vedea ce trebuie făcut.",
+      "failedTitle": "Sesiune eșuată",
+      "failedDesc": "Sesiunea WhatsApp nu a reușit să pornească. Deschide sesiunea pentru a vedea motivul."
+    },
+    "card": {
+      "phone": "Telefon",
+      "sessionId": "ID sesiune",
+      "lastActive": "Ultima activitate",
+      "error": "Eroare",
+      "restriction": "Restricție"
+    },
+    "forceKill": {
+      "title": "Oprește forțat sesiunea blocată",
+      "message": "Sigur vrei să oprești forțat sesiunea \"{{name}}\"?",
+      "warning": "Aceasta va termina forțat procesul de browser WhatsApp. Este posibil ca sesiunea să necesite o nouă scanare la repornire.",
+      "confirm": "Oprește sesiunea",
+      "successTitle": "Sesiune oprită",
+      "success": "Sesiunea a fost oprită forțat. O poți reporni acum.",
+      "failedTitle": "Oprirea forțată a eșuat",
+      "failed": "Sesiunea nu a putut fi oprită forțat."
+    },
+    "unlink": {
+      "title": "Dezasociază dispozitivul",
+      "message": "Dezasociezi sesiunea <strong>\"{{name}}\"</strong> de contul WhatsApp?",
+      "warning": "WhatsApp elimină acest dispozitiv din Dispozitivele conectate ale contului, iar sesiunea se oprește. Reconectarea necesită o nouă scanare QR sau un cod de asociere. Pentru a șterge și toate datele locale, șterge sesiunea după aceea.",
+      "confirm": "Dezasociază",
+      "successTitle": "Dispozitiv dezasociat",
+      "success": "Dezasociere finalizată: dispozitivul a fost deconectat, iar datele locale de autentificare ale sesiunii au fost șterse. Reconectarea necesită o nouă scanare QR sau un cod de asociere.",
+      "incompleteTitle": "Dezasociere incompletă",
+      "incomplete": "Sesiunea s-a oprit local, dar operațiunea de deconectare este incompletă — dispozitivul poate fi încă asociat. Pornește sesiunea și încearcă din nou deconectarea.",
+      "failedTitle": "Dezasociere eșuată",
+      "failed": "Sesiunea nu a putut fi dezasociată."
+    },
+    "pairing": {
+      "tabQr": "Cod QR",
+      "tabPhone": "Conectare cu număr de telefon",
+      "phoneLabel": "Număr de telefon",
+      "phonePlaceholder": "ex.: 40712345678",
+      "phoneHint": "Doar cifre (fără +, spații sau cratime) în format internațional (prefix de țară + număr).",
+      "invalidPhone": "Introdu un număr de telefon valid: 6–15 cifre, prefixul de țară primul, fără simboluri.",
+      "generateButton": "Generează cod de asociere",
+      "generating": "Se generează codul de asociere...",
+      "codeLabel": "Codul tău de asociere",
+      "changeNumber": "Schimbă numărul / Solicită un cod nou",
+      "instructions": "Instrucțiuni de asociere",
+      "step1": "<strong>1.</strong> Deschide WhatsApp pe telefon",
+      "step2": "<strong>2.</strong> Atinge <strong>Meniu</strong> sau <strong>Setări</strong> și selectează <strong>Dispozitive conectate</strong>",
+      "step3": "<strong>3.</strong> Atinge <strong>Conectează un dispozitiv</strong>, apoi atinge <strong>Conectează cu numărul de telefon</strong>",
+      "step4": "<strong>4.</strong> Introdu pe telefon codul de 8 caractere afișat mai sus",
+      "waitingConnection": "Se așteaptă conectarea telefonului…"
+    },
+    "restriction": {
+      "reachout_timelock": "Conversații noi blocate",
+      "tos_block": "Blocat de WhatsApp",
+      "proxy_block": "Conexiune blocată",
+      "until": "până la {{date}}"
+    }
+  },
+  "webhooks": {
+    "title": "Webhook-uri",
+    "subtitle": "Configurează callback-uri HTTP pentru notificări de evenimente în timp real",
+    "addWebhook": "Adaugă webhook",
+    "createTitle": "Creează webhook",
+    "editTitle": "Editează webhook-ul",
+    "deleteTitle": "Șterge webhook-ul",
+    "deleteConfirm": "Sigur vrei să ștergi acest webhook?",
+    "selectSession": "Selectează sesiunea...",
+    "session": "Sesiune",
+    "events": "Evenimente",
+    "available": "Evenimente disponibile",
+    "saveChanges": "Salvează modificările",
+    "filters": {
+      "title": "Filtre (opțional)",
+      "hint": "Se declanșează doar când toate condițiile se potrivesc. Se aplică evenimentelor de mesaje.",
+      "badge": "{{count}} filtru",
+      "badge_few": "{{count}} filtre",
+      "badge_other": "{{count}} de filtre",
+      "addCondition": "Adaugă condiție",
+      "removeCondition": "Elimină condiția",
+      "caseSensitive": "Sensibil la majuscule",
+      "contactPlaceholder": "Număr sau ID WhatsApp...",
+      "textPlaceholder": "Text de potrivit...",
+      "addValue": "Adaugă \"{{value}}\"",
+      "yes": "Da",
+      "no": "Nu",
+      "fields": {
+        "sender": "Expeditor",
+        "recipient": "Destinatar",
+        "body": "Corpul mesajului",
+        "type": "Tip mesaj",
+        "isGroup": "Este chat de grup",
+        "fromMe": "Trimis de mine",
+        "hasMedia": "Conține media",
+        "mentions": "Mențiuni"
+      },
+      "operators": {
+        "is": "este",
+        "isNot": "nu este",
+        "contains": "conține",
+        "equals": "egal cu"
+      }
+    },
+    "columns": {
+      "url": "URL",
+      "events": "Evenimente",
+      "session": "Sesiune",
+      "status": "Stare",
+      "actions": "Acțiuni"
+    },
+    "empty": {
+      "title": "Niciun webhook configurat",
+      "description": "Adaugă un webhook pentru a primi notificări de evenimente în timp real"
+    },
+    "toasts": {
+      "created": "Webhook creat cu succes",
+      "createFailed": "Webhook-ul nu a putut fi creat: {{message}}",
+      "deleted": "Webhook șters cu succes",
+      "deleteFailed": "Webhook-ul nu a putut fi șters: {{message}}",
+      "updated": "Webhook actualizat cu succes",
+      "updateFailed": "Webhook-ul nu a putut fi actualizat: {{message}}",
+      "testOk": "Test webhook reușit! Stare: {{status}}",
+      "testFailed": "Testul webhook a eșuat: {{message}}",
+      "testError": "Webhook-ul nu a putut fi testat: {{message}}"
+    },
+    "actions": {
+      "test": "Testează",
+      "edit": "Editează",
+      "delete": "Șterge"
+    },
+    "eventDescriptions": {
+      "message.received": "Când se primește un mesaj",
+      "message.sent": "Când se trimite un mesaj",
+      "session.connected": "Când o sesiune se conectează",
+      "session.disconnected": "Când o sesiune se deconectează",
+      "session.qr": "Când se generează codul QR",
+      "all": "Toate evenimentele"
+    }
+  },
+  "templates": {
+    "title": "Șabloane",
+    "subtitle": "Creează șabloane de mesaje reutilizabile pentru fiecare sesiune WhatsApp",
+    "createTitle": "Creează șablon",
+    "editTitle": "Editează șablonul",
+    "newTemplate": "Șablon nou",
+    "createTemplate": "Creează șablon",
+    "saveChanges": "Salvează modificările",
+    "viewOnly": "Doar vizualizare",
+    "noSessions": "Nicio sesiune",
+    "sessionHint": "Salvat sub {{name}}",
+    "namePlaceholder": "ex.: confirmare-comanda",
+    "header": "Antet",
+    "headerPlaceholder": "Rând introductiv opțional",
+    "body": "Corp",
+    "bodyPlaceholder": "Bună {{customer}}, comanda ta {{orderId}} este gata.",
+    "footer": "Subsol",
+    "footerPlaceholder": "Rând de încheiere opțional",
+    "previewTitle": "Previzualizare",
+    "previewValuePlaceholder": "Valoare exemplu",
+    "previewEmpty": "Începe să scrii un șablon pentru a-l previzualiza aici.",
+    "noPlaceholders": "Folosește substituenți {{name}} pentru a testa înlocuirile.",
+    "savedTitle": "Șabloane salvate",
+    "count": "{{count}} în total",
+    "deleteTitle": "Șterge șablonul",
+    "deleteConfirm": "Ștergi șablonul \"{{name}}\"? Această acțiune nu poate fi anulată.",
+    "actions": {
+      "copyName": "Copiază numele șablonului"
+    },
+    "empty": {
+      "title": "Niciun șablon salvat",
+      "description": "Creează un șablon reutilizabil pentru a accelera răspunsurile și notificările frecvente.",
+      "noSessionsTitle": "Nicio sesiune disponibilă",
+      "noSessionsDesc": "Creează o sesiune WhatsApp înainte de a adăuga șabloane."
+    },
+    "toasts": {
+      "created": "Șablon creat cu succes",
+      "createFailed": "Șablonul nu a putut fi creat: {{message}}",
+      "updated": "Șablon actualizat cu succes",
+      "updateFailed": "Șablonul nu a putut fi actualizat: {{message}}",
+      "deleted": "Șablon șters cu succes",
+      "deleteFailed": "Șablonul nu a putut fi șters: {{message}}",
+      "copied": "Numele șablonului a fost copiat"
+    }
+  },
+  "apiKeys": {
+    "title": "Chei API",
+    "subtitle": "Gestionează cheile API pentru autentificare și controlul accesului",
+    "createBtn": "Creează cheie API",
+    "modalTitle": "Creează cheie API",
+    "createdTitle": "Cheie API creată",
+    "createdHint": "Copiază această cheie acum. Nu o vei mai putea vedea din nou.",
+    "namePlaceholder": "ex.: Cheie de producție",
+    "rolesTitle": "Referință roluri",
+    "roles": {
+      "admin": "Administrator",
+      "operator": "Operator",
+      "viewer": "Observator"
+    },
+    "roleDescriptions": {
+      "admin": "Acces complet la toate resursele",
+      "operator": "Gestionarea sesiunilor și a mesajelor",
+      "viewer": "Acces doar în citire"
+    },
+    "columns": {
+      "name": "Nume",
+      "key": "Cheie",
+      "role": "Rol",
+      "status": "Stare",
+      "lastUsed": "Ultima utilizare",
+      "actions": "Acțiuni"
+    },
+    "statuses": {
+      "active": "Activă",
+      "revoked": "Revocată"
+    },
+    "empty": {
+      "title": "Nicio cheie API creată",
+      "description": "Creează o cheie API pentru a-ți autentifica cererile"
+    },
+    "confirm": {
+      "deleteTitle": "Șterge cheia API",
+      "revokeTitle": "Revocă cheia API",
+      "deleteMessage": "Sigur vrei să ștergi definitiv <strong>{{name}}</strong>? Această acțiune nu poate fi anulată.",
+      "revokeMessage": "Sigur vrei să revoci <strong>{{name}}</strong>? Nu va mai funcționa.",
+      "delete": "Șterge",
+      "revoke": "Revocă"
+    },
+    "actions": {
+      "copy": "Copiază",
+      "revoke": "Revocă",
+      "delete": "Șterge"
+    }
+  },
+  "logs": {
+    "title": "Jurnale de audit",
+    "subtitle": "Urmărește și revizuiește toate acțiunile API și evenimentele de sistem",
+    "exportCsv": "Exportă CSV",
+    "searchPlaceholder": "Caută în jurnale...",
+    "severity": {
+      "all": "Toate severitățile",
+      "info": "Informație",
+      "warn": "Avertisment",
+      "error": "Eroare"
+    },
+    "columns": {
+      "timestamp": "Marcaj de timp",
+      "action": "Acțiune",
+      "session": "Sesiune",
+      "apiKey": "Cheie API",
+      "ip": "Adresă IP",
+      "severity": "Severitate"
+    },
+    "empty": {
+      "title": "Niciun jurnal găsit",
+      "description": "Jurnalele de audit vor apărea aici pe măsură ce se efectuează acțiuni"
+    }
+  },
+  "messageTester": {
+    "title": "Testare mesaje",
+    "subtitle": "Trimite mesaje de test prin API",
+    "compose": "Trimite mesaj de test",
+    "responseTitle": "Răspuns API",
+    "session": "Sesiune",
+    "noReadySessions": "Nicio sesiune pregătită",
+    "sessionOptionPhoneNone": "Fără telefon",
+    "recipientType": "Tip destinatar",
+    "personal": "Personal",
+    "group": "Grup",
+    "selectGroup": "Selectează grupul",
+    "recipientPhone": "Numărul de telefon al destinatarului",
+    "loadingGroups": "Se încarcă grupurile...",
+    "noGroupsFound": "Niciun grup găsit",
+    "selectGroupHint": "Selectează un grup din WhatsApp-ul tău",
+    "phoneHint": "Folosește formatul internațional, fără spații",
+    "messageType": "Tip mesaj",
+    "types": {
+      "text": "Text",
+      "image": "Imagine",
+      "video": "Video",
+      "audio": "Audio",
+      "document": "Document",
+      "location": "Locație",
+      "contact": "Contact",
+      "sticker": "Sticker",
+      "poll": "Sondaj",
+      "forward": "Redirecționare",
+      "bulk": "În masă"
+    },
+    "messageContent": "Conținutul mesajului",
+    "messagePlaceholder": "Introdu mesajul aici...",
+    "mediaUrl": "URL media",
+    "uploadFile": "Încarcă fișier",
+    "browse": "Răsfoiește",
+    "removeFile": "Elimină fișierul",
+    "fileReadError": "Citirea fișierului a eșuat",
+    "fileTooLarge": "Fișierul este prea mare (max. 18 MB)",
+    "caption": "Descriere",
+    "filename": "Nume fișier",
+    "captionPlaceholder": "Introdu descrierea...",
+    "filenamePlaceholder": "document.pdf",
+    "locationLatitude": "Latitudine",
+    "locationLongitude": "Longitudine",
+    "locationDescription": "Descriere",
+    "locationAddress": "Adresă",
+    "contactName": "Nume contact",
+    "contactNamePlaceholder": "Ana Popescu",
+    "contactNumber": "Număr contact",
+    "pollQuestion": "Întrebarea sondajului",
+    "pollQuestionPlaceholder": "Unde ne întâlnim?",
+    "pollOptions": "Opțiuni sondaj",
+    "pollOptionPlaceholder": "Opțiunea {{index}}",
+    "pollOptionsHint": "Între 2 și 12 opțiuni",
+    "addOption": "Adaugă opțiune",
+    "removeOption": "Elimină opțiunea",
+    "allowMultipleAnswers": "Permite răspunsuri multiple",
+    "forwardFromChatId": "Din ID-ul conversației",
+    "forwardFromPlaceholder": "628123456789@c.us",
+    "forwardFromHint": "Lasă gol pentru a redirecționa de la destinatarul curent",
+    "forwardToChatId": "Către ID-ul conversației",
+    "forwardToPlaceholder": "Număr de telefon sau ID de conversație",
+    "forwardMessageId": "ID mesaj",
+    "forwardMessageIdHint": "ID-ul mesajului de redirecționat",
+    "bulkRecipients": "Destinatari",
+    "bulkRecipientsPlaceholder": "+40712345678",
+    "bulkRecipientsHint": "Un număr de telefon sau ID de conversație pe linie (max. 100)",
+    "bulkRecipientsCount": "Destinatari: {{count}}",
+    "bulkDelay": "Întârziere între mesaje (ms)",
+    "bulkDelayHint": "1000–60000 ms (implicit 3000)",
+    "send": "Trimite mesajul",
+    "sending": "Se trimite...",
+    "viewOnly": "Doar vizualizare",
+    "responseEmpty": "Trimite un mesaj pentru a vedea răspunsul API",
+    "successLabel": "Succes",
+    "failedLabel": "Eșuat",
+    "response": {
+      "timestamp": "Marcaj de timp",
+      "messageId": "ID mesaj",
+      "batchId": "ID lot",
+      "error": "Eroare"
+    },
+    "sendFailed": "Mesajul nu a putut fi trimis",
+    "notOnWhatsApp": "Acest număr nu este înregistrat pe WhatsApp",
+    "batch": {
+      "status": {
+        "pending": "În așteptare",
+        "processing": "În procesare",
+        "completed": "Finalizat",
+        "cancelled": "Anulat",
+        "failed": "Eșuat"
+      },
+      "progress": "Trimise {{sent}} din {{total}} · {{failed}} eșuate · {{pending}} în așteptare",
+      "cancel": "Anulează lotul",
+      "cancelling": "Se anulează..."
+    }
+  },
+  "infrastructure": {
+    "title": "Infrastructură",
+    "subtitle": "Configurează setările pentru server, bază de date, cache, stocare și motor",
+    "saveConfig": "Salvează configurația",
+    "saving": "Se salvează...",
+    "database": {
+      "title": "Configurare bază de date",
+      "sqlite": "SQLite",
+      "sqliteDesc": "Bază de date locală bazată pe fișiere",
+      "postgres": "PostgreSQL",
+      "postgresDesc": "Bază de date pregătită pentru producție",
+      "useBuiltIn": "Folosește containerul PostgreSQL integrat",
+      "builtInDesc": "OpenWA va gestiona un container PostgreSQL pentru tine",
+      "dbName": "Numele bazei de date",
+      "schema": "Schemă",
+      "schemaDesc": "Schema PostgreSQL (ignorată pentru SQLite). Implicit 'public'. Schema trebuie să existe deja.",
+      "poolSize": "Dimensiunea pool-ului",
+      "ssl": "Conexiune SSL",
+      "sslDesc": "Activează TLS/SSL pentru conexiuni securizate la baza de date",
+      "sslRejectUnauthorized": "Verifică certificatul SSL",
+      "sslRejectUnauthorizedDesc": "Respinge certificatele auto-semnate sau invalide. Dezactivează pentru Postgres administrat cu certificate auto-semnate (Supabase, Heroku, Render, Railway).",
+      "migrationsTitle": "Migrări ale bazei de date",
+      "migrationsStatus": "Schema este sincronizată automat cu TypeORM",
+      "migrationsHint": "Migrările sunt gestionate automat. Folosește CLI pentru migrări manuale."
+    },
+    "engine": {
+      "title": "Motor WhatsApp",
+      "builtIn": "Integrat",
+      "headless": "Mod headless",
+      "headlessDesc": "Rulează browserul fără interfață vizibilă (recomandat pentru producție).",
+      "sessionDataPath": "Calea datelor de sesiune",
+      "browserArgs": "Argumente browser",
+      "noBrowser": "Acest motor se conectează prin WebSocket — nu are browser, deci nu există setări pentru modul headless sau argumente de browser. Motorul activ se aplică după o repornire.",
+      "restartNote": "Schimbarea motorului intră în vigoare după o repornire a serverului.",
+      "webVersion": "Versiune WhatsApp Web",
+      "webVersionNative": "auto (implicit whatsapp-web.js)",
+      "webVersionSource": {
+        "pinned": "fixată prin WWEBJS_WEB_VERSION",
+        "auto": "rezolvată automat, versiunea curentă cunoscută ca funcțională",
+        "native": "selecție automată nativă whatsapp-web.js"
+      }
+    },
+    "redis": {
+      "title": "Redis",
+      "enable": "Activează Redis",
+      "enableDesc": "Necesar pentru cache, stocarea sesiunilor și cozile BullMQ",
+      "useBuiltIn": "Folosește containerul Redis integrat",
+      "builtInDesc": "OpenWA va gestiona un container Redis pentru tine",
+      "queueTitle": "Activează sistemul de cozi BullMQ",
+      "queueDesc": "Folosește cozi de mesaje pentru livrarea fiabilă a mesajelor și a webhook-urilor",
+      "statsTitle": "Statistici cozi",
+      "webhookQueue": "Coadă webhook",
+      "pending": "În așteptare",
+      "completed": "Finalizate",
+      "failed": "Eșuate",
+      "viewBullMq": "Vezi panoul Bull MQ",
+      "disabledTitle": "Redis este dezactivat",
+      "disabledDesc": "Activează Redis pentru cache, stocarea sesiunilor și cozile de mesaje BullMQ.",
+      "passwordOptional": "(opțional)",
+      "bullMqUrlCopied": "URL-ul panoului Bull MQ a fost copiat",
+      "bullMqUrlHint": "Deschide-l cu o cheie API de ADMIN — un tab de browser nu se poate autentifica."
+    },
+    "storage": {
+      "title": "Configurare stocare",
+      "s3Unreachable": "S3 (inaccesibil)",
+      "local": "Sistem de fișiere local",
+      "localDesc": "Stochează fișierele media local",
+      "s3": "Amazon S3",
+      "s3Desc": "Stocare în cloud (compatibilă S3)",
+      "useBuiltIn": "Folosește containerul MinIO integrat",
+      "builtInDesc": "OpenWA va gestiona un container MinIO (compatibil S3) pentru tine",
+      "storagePath": "Cale de stocare",
+      "bucket": "Nume bucket",
+      "region": "Regiune",
+      "accessKey": "Cheie de acces",
+      "secretKey": "Cheie secretă",
+      "endpoint": "Endpoint personalizat (opțional)",
+      "endpointHint": "Pentru MinIO sau alte servicii compatibile S3"
+    },
+    "statusLabels": {
+      "connected": "Conectat",
+      "disconnected": "Deconectat",
+      "disabled": "Dezactivat"
+    },
+    "envPinNote": "Fixat prin variabila de mediu {{name}} — aceasta este valoarea în uz; modificările din panou nu se vor aplica până când variabila nu este eliminată.",
+    "pendingRestartNote": "Salvat, dar încă neaplicat — repornește serverul pentru ca această modificare să intre în vigoare.",
+    "migration": {
+      "title": "Atenție — aceasta schimbă backend-ul de date",
+      "dbWarning": "Noua bază de date pornește goală. Descarcă acum o copie de rezervă a datelor curente (cât timp ești încă pe vechea bază de date), apoi restaureaz-o după repornire.",
+      "storageWarning": "Fișierele media existente nu sunt mutate automat în noul backend de stocare; ele vor rămâne în locația veche.",
+      "downloadBackup": "Descarcă mai întâi copia de rezervă",
+      "backupTitle": "Copie de rezervă și restaurare a datelor",
+      "backupHint": "Exportă toate datele ca JSON înainte de a schimba baza de date, apoi importă-le după schimbare. Copia de rezervă conține secretele webhook și datele de autentificare pentru proxy în text clar — păstreaz-o în siguranță și șterge-o după restaurare.",
+      "export": "Exportă datele",
+      "import": "Importă datele",
+      "exportFailed": "Datele nu au putut fi exportate",
+      "exportPartialTitle": "Copiei de rezervă îi lipsesc unele fișiere media",
+      "exportPartial": "{{count}} atașament(e) au depășit limita de media pentru export și au fost salvate ca substituenți. Mesajele se restaurează; media lor nu.",
+      "importFailed": "Datele nu au putut fi importate",
+      "importOk": "Date importate",
+      "importConfirm": "Importul va ÎNLOCUI toate datele curente cu copia de rezervă ({{rows}} rânduri). Această acțiune nu poate fi anulată. Continui?",
+      "invalidFile": "Acel fișier nu este o copie de rezervă validă de date OpenWA.",
+      "importTooLarge": "Copia de rezervă este prea mare pentru limita cererii. Mărește BODY_SIZE_LIMIT pe server și încearcă din nou."
+    },
+    "restart": {
+      "idleTitle": "Configurație salvată",
+      "restartingTitle": "Se repornește serverul…",
+      "waitingTitle": "Te rugăm să aștepți…",
+      "successTitle": "Server pregătit",
+      "errorTitle": "Repornire eșuată",
+      "idleDesc": "Configurația a fost salvată în <code>.env.generated</code>.<br/>Este necesară o repornire a serverului pentru a aplica modificările.",
+      "later": "Repornește mai târziu",
+      "now": "Repornește acum",
+      "restartingMsg": "Serverul repornește... {{count}}s",
+      "checking": "Se verifică starea serverului...",
+      "dontClose": "Te rugăm să nu închizi această fereastră",
+      "successMsg": "Serverul este din nou online! Pagina se va reîncărca automat.",
+      "errorMsg": "Serverul nu a răspuns după 30 de secunde. Verifică jurnalele Docker și repornește manual.",
+      "reload": "Reîncarcă pagina"
+    },
+    "toasts": {
+      "saveFailed": "Salvare eșuată"
+    },
+    "statusLoadError": "Starea curentă a infrastructurii nu a putut fi încărcată. Reîmprospătează pentru a încerca din nou."
+  },
+  "plugins": {
+    "title": "Plugin-uri",
+    "subtitle": "Instalează, configurează și gestionează extensii",
+    "refresh": "Reîmprospătează",
+    "builtIn": "Integrat",
+    "noDescription": "Nicio descriere disponibilă",
+    "enable": "Activează",
+    "disable": "Dezactivează",
+    "healthCheck": "Verificare stare",
+    "configure": "Configurează",
+    "install": "Instalează plugin",
+    "uninstall": "Dezinstalează",
+    "uninstallConfirm": "Dezinstalezi \"{{name}}\"? Aceasta îi șterge fișierele.",
+    "empty": {
+      "title": "Niciun plugin instalat",
+      "description": "Instalează un plugin pentru a extinde capabilitățile OpenWA."
+    },
+    "config": {
+      "title": "Configurează {{name}}",
+      "noOptions": "Nu există opțiuni de configurare disponibile pentru acest plugin",
+      "uiHandshakeError": "Interfața de configurare a plugin-ului nu s-a inițializat. Folosește formularul de mai jos, dacă este disponibil.",
+      "save": "Salvează configurația",
+      "addItem": "Adaugă",
+      "tabConfig": "Configurare",
+      "tabSessions": "Sesiuni"
+    },
+    "rail": {
+      "enabled": "activate",
+      "installed": "instalate",
+      "active": "Plugin-uri active",
+      "none": "Niciunul activat încă"
+    },
+    "installModal": {
+      "title": "Instalează un plugin",
+      "hint": "Încarcă un plugin împachetat ca .zip (cu un manifest.json). Odată activat, rulează izolat (sandbox).",
+      "choose": "Alege un fișier .zip…",
+      "tooLarge": "Fișierul depășește limita de 5 MB.",
+      "catalogHint": "Instalează direct din catalogul de plugin-uri OpenWA. Fișierul .zip este descărcat pe server prin protecția SSRF, apoi validat și izolat.",
+      "catalogTeaser": "Cauți plugin-uri?",
+      "catalogTeaserSuffix": "răsfoiește marketplace-ul oficial.",
+      "tabCatalog": "Catalog",
+      "tabUpload": "Încarcă .zip"
+    },
+    "toasts": {
+      "errorTitle": "Eroare plugin",
+      "errorDefault": "Comutarea plugin-ului a eșuat",
+      "healthOk": "Verificare de stare reușită",
+      "healthFail": "Verificare de stare eșuată",
+      "healthError": "Eroare la verificarea stării",
+      "savedTitle": "Configurație salvată",
+      "savedDesc": "Este necesară repornirea serverului pentru a aplica modificările.",
+      "saveFailed": "Salvare eșuată",
+      "installed": "Plugin instalat",
+      "installFailed": "Instalare eșuată",
+      "uninstalled": "Plugin dezinstalat",
+      "uninstallFailed": "Dezinstalare eșuată",
+      "enableFailedTitle": "Activare eșuată",
+      "disableFailedTitle": "Dezactivare eșuată",
+      "configRequiredTitle": "Configurare necesară",
+      "configRequiredDesc": "Completează câmpurile obligatorii înainte de activare: {{fields}}",
+      "updateFailed": "Actualizare eșuată"
+    },
+    "sessions": {
+      "activationTitle": "Rulează pentru",
+      "activationDesc": "Alege pentru care sesiuni rulează acest plugin.",
+      "allSessions": "Toate sesiunile",
+      "specificSessions": "Sesiuni specifice",
+      "noSessions": "Nicio sesiune încă.",
+      "saveActivation": "Salvează activarea",
+      "perSessionTitle": "Configurare per sesiune",
+      "perSessionDesc": "Suprascrie configurația globală pentru o sesiune; câmpurile neatinse moștenesc valoarea globală.",
+      "selectSession": "Selectează o sesiune…",
+      "saveOverride": "Salvează suprascrierea",
+      "clearOverride": "Elimină suprascrierea"
+    },
+    "instances": {
+      "title": "Instanțe",
+      "description": "Provizionează instanțe per cont pentru această integrare. Fiecare instanță are propriul secret de semnare și propriul URL de ingress.",
+      "create": "Creează instanță",
+      "empty": "Nicio instanță încă. Creează una pentru a obține un URL de ingress și un secret.",
+      "loadError": "Instanțele nu au putut fi încărcate.",
+      "allSessions": "Toate sesiunile",
+      "enabled": "Activată",
+      "disabled": "Dezactivată",
+      "form": {
+        "instanceId": "ID instanță",
+        "instanceIdPlaceholder": "ex.: acme-support",
+        "instanceIdHint": "Litere, cifre, cratime, liniuțe de subliniere (max. 64).",
+        "sessionScope": "Domeniu de sesiuni (opțional)",
+        "sessionScopePlaceholder": "Lasă gol pentru toate sesiunile",
+        "verifyToken": "Token de verificare (opțional)",
+        "verifyTokenPlaceholder": "Token-ul pe care furnizorul îl returnează la verificare",
+        "secret": "Secret de ingress (opțional)",
+        "secretPlaceholder": "Secretul webhook al furnizorului (ex.: Chatwoot)",
+        "secretHint": "Lasă gol pentru generare automată (afișat o singură dată). Dacă furnizorul își fixează propriul secret de webhook, lipește-l aici — un secret generat automat nu se va potrivi.",
+        "config": "Config (JSON opțional)",
+        "configPlaceholder": "{ }"
+      },
+      "created": {
+        "title": "Instanță creată",
+        "hint": "Copiază secretul acum — este afișat o singură dată.",
+        "secret": "Secret de semnare",
+        "ingressUrls": "URL-uri de ingress"
+      },
+      "regenerate": {
+        "title": "Regenerează secretul",
+        "confirm": "Regenerezi secretul de semnare pentru {{id}}? Secretul curent încetează să funcționeze imediat.",
+        "action": "Regenerează"
+      },
+      "edit": {
+        "title": "Editează {{id}}"
+      },
+      "delete": {
+        "title": "Șterge instanța",
+        "confirm": "Ștergi instanța {{id}}? URL-ul ei de ingress și secretul încetează să funcționeze imediat.",
+        "action": "Șterge"
+      },
+      "actions": {
+        "regenerate": "Regenerează secretul",
+        "edit": "Editează",
+        "delete": "Șterge",
+        "copy": "Copiază",
+        "save": "Salvează",
+        "enable": "Activează",
+        "disable": "Dezactivează"
+      },
+      "errors": {
+        "invalidId": "ID-ul instanței poate conține doar litere, cifre, cratime sau liniuțe de subliniere (max. 64).",
+        "invalidJson": "Config-ul trebuie să fie JSON valid.",
+        "invalidSecret": "Secretul trebuie să aibă cel puțin 16 caractere sau lasă gol pentru generare automată.",
+        "duplicateId": "Există deja o instanță cu acest ID."
+      },
+      "toasts": {
+        "created": "Instanță creată",
+        "updated": "Instanță actualizată",
+        "deleted": "Instanță ștearsă",
+        "secretRegenerated": "Secret regenerat",
+        "actionFailed": "Acțiune eșuată"
+      }
+    },
+    "catalog": {
+      "empty": "Niciun plugin în catalog.",
+      "install": "Instalează",
+      "installed": "Instalat",
+      "noDownload": "Această intrare din catalog nu are URL de descărcare.",
+      "noMatch": "Niciun plugin nu corespunde căutării.",
+      "searchPlaceholder": "Caută plugin-uri…",
+      "update": "Actualizează",
+      "updateAvailable": "Actualizare disponibilă",
+      "updated": "Plugin actualizat"
+    }
+  },
+  "search": {
+    "placeholder": "Caută mesaje…",
+    "results": "{{count}} rezultate",
+    "empty": "Niciun mesaj găsit.",
+    "error": "Căutarea a eșuat. Încearcă din nou.",
+    "unavailable": "Căutarea nu este configurată.",
+    "scope": {
+      "current": "Această sesiune"
+    },
+    "loading": "Se caută…"
+  }
+}

@@ -115,6 +115,23 @@ export class InfraEngineStatusDto {
   webVersionSource?: string;
 }
 
+export class InfraFail2banStatusDto {
+  @ApiProperty({ description: 'Whether intrusion prevention is switched on.', example: false })
+  enabled!: boolean;
+
+  @ApiProperty({
+    description: 'Currently-banned IP count, from the host-produced status file (0 when absent).',
+    example: 0,
+  })
+  bannedCount!: number;
+
+  @ApiPropertyOptional({ type: [String], description: 'Banned IPs, when the host status file lists them.' })
+  bannedIps?: string[];
+
+  @ApiPropertyOptional({ description: 'ISO-8601 time the host last wrote the status file.' })
+  updatedAt?: string;
+}
+
 export class InfraStatusResponseDto {
   @ApiProperty({ type: InfraDatabaseStatusDto })
   database!: InfraDatabaseStatusDto;
@@ -141,6 +158,9 @@ export class InfraStatusResponseDto {
     example: ['ENGINE_TYPE'],
   })
   envPinned!: string[];
+
+  @ApiProperty({ type: InfraFail2banStatusDto })
+  fail2ban!: InfraFail2banStatusDto;
 }
 
 // ---------- GET /infra/health, /infra/engines, /infra/engines/current ----------
@@ -292,6 +312,20 @@ export class InfraConfigEngineDto {
   browserArgs!: string;
 }
 
+export class InfraConfigFail2banDto {
+  @ApiProperty({ example: false })
+  enabled!: boolean;
+
+  @ApiProperty({ description: 'Failures within findtime before an IP is banned.', example: 5 })
+  maxretry!: number;
+
+  @ApiProperty({ description: 'Sliding window in seconds.', example: 600 })
+  findtime!: number;
+
+  @ApiProperty({ description: 'Ban duration in seconds (default 86400 = 24h).', example: 86400 })
+  bantime!: number;
+}
+
 export class InfraConfigResponseDto {
   @ApiProperty({ type: InfraConfigDatabaseDto })
   database!: InfraConfigDatabaseDto;
@@ -307,6 +341,9 @@ export class InfraConfigResponseDto {
 
   @ApiProperty({ type: InfraConfigEngineDto })
   engine!: InfraConfigEngineDto;
+
+  @ApiProperty({ type: InfraConfigFail2banDto })
+  fail2ban!: InfraConfigFail2banDto;
 }
 
 export class InfraConfigSaveResponseDto {

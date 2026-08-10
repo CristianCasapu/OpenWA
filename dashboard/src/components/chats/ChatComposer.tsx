@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Paperclip, Send, Smile, X } from 'lucide-react';
 import { messageApi, type Chat, type MessageType } from '../../services/api';
-import { mergeOrAppend, type ChatMessageView } from '../../utils/chatMessages';
+import { createTempMessageId, mergeOrAppend, type ChatMessageView } from '../../utils/chatMessages';
+import { MEDIA_UPLOAD_MAX_BYTES } from '../../utils/mediaUpload';
 import { promoteChatWithSnippet } from '../../utils/chatList';
 import { messagesQueryKey, useChatMessagesActions } from '../../hooks/useChatMessages';
 import { useRole } from '../../hooks/useRole';
@@ -108,10 +109,19 @@ function ChatComposer({
     '✨',
   ];
 
-  // 5. Handle file selection & base64 conversion
+  // 5. Handle file selection & base64 conversion — mirrors the message tester's hardened picker.
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file after it's removed
     if (!file) return;
+
+    // Reject before base64-encoding: encoding holds ~1.33x the bytes in a JS string (twice, once
+    // staged and once in the optimistic bubble), so an oversized pick OOMs the tab long before the
+    // backend's 413 could say anything useful.
+    if (file.size > MEDIA_UPLOAD_MAX_BYTES) {
+      showErrorToast(t('messageTester.fileTooLarge'));
+      return;
+    }
 
     if (file.type.startsWith('image/')) {
       setPreviewUrl(URL.createObjectURL(file));
@@ -121,12 +131,29 @@ function ChatComposer({
 
     const myRead = ++attachmentReadSeq.current;
     const reader = new FileReader();
-    reader.onload = event => {
+    reader.onload = () => {
       // A newer pick, a removal, or an unmount since the read started supersedes these bytes.
       if (attachmentReadSeq.current !== myRead) return;
-      const dataUrl = event.target?.result as string;
-      const base64Data = dataUrl.split(',')[1];
+      const dataUrl = reader.result;
+      // A null/non-string result or an empty payload must not stage `undefined` bytes behind a
+      // `string`-typed field — the send path would post literal garbage.
+      if (typeof dataUrl !== 'string') {
+        setPreviewUrl(null);
+        return;
+      }
+      const base64Data = dataUrl.split(',')[1] ?? '';
+      if (!base64Data) {
+        setPreviewUrl(null);
+        return;
+      }
       setAttachment({ file, base64: base64Data, mimetype: file.type, filename: file.name });
+    };
+    reader.onerror = () => {
+      // Without this a failed read left the UI wedged: an image preview with no attachment and
+      // no explanation.
+      if (attachmentReadSeq.current !== myRead) return;
+      setPreviewUrl(null);
+      showErrorToast(t('messageTester.fileReadError'));
     };
     reader.readAsDataURL(file);
   };
@@ -158,7 +185,7 @@ function ChatComposer({
     setMessageInput('');
     setSending(true);
 
-    const tempId = `temp_${Date.now()}`;
+    const tempId = createTempMessageId();
     const tempMessage: ChatMessageView = {
       id: tempId,
       chatId: activeChat.id,
@@ -258,6 +285,10 @@ function ChatComposer({
     } catch (err) {
       showErrorToast(t('chats.errors.send'), err instanceof Error ? err.message : undefined);
       updateMessage(selectedSessionId, activeChat.id, tempId, { status: 'failed' });
+      // Give the typed text back for a retry — clearing it optimistically is right for the happy
+      // path, but on failure the only copy lived in a bubble marked failed. Functional update so
+      // anything the user typed DURING the await wins over the restore.
+      setMessageInput(prev => (prev.length > 0 ? prev : textToSend));
     } finally {
       setSending(false);
     }

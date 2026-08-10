@@ -20,6 +20,7 @@ jest.mock('fs', () => {
   };
 });
 
+import * as fs from 'fs';
 import { InfraStatusController } from './infra-status.controller';
 import { recordPinnedEnvKeys } from '../../config/env-precedence';
 
@@ -221,5 +222,54 @@ describe('InfraStatusController.getStatus envPinned', () => {
     recordPinnedEnvKeys({});
 
     expect((await buildController().getStatus()).envPinned).toEqual([]);
+  });
+});
+
+// The app cannot run fail2ban-client; a host action writes data/fail2ban/status.json and the app only
+// reads it, degrading to the configured-enabled flag with zero bans when it is absent/unparseable.
+describe('InfraStatusController.getStatus fail2ban read-back', () => {
+  const build = (configEnabled: boolean) => {
+    const config = {
+      get: (k: string, def?: unknown) =>
+        k === 'engine.type' ? 'baileys' : k === 'fail2ban.enabled' ? configEnabled : def,
+    };
+    const ds = { isInitialized: true, query: jest.fn().mockResolvedValue([{ '1': 1 }]) };
+    const cache = { isAvailable: jest.fn().mockResolvedValue(false), refreshS3Availability: jest.fn() };
+    return new InfraStatusController(
+      config as never,
+      ds as never,
+      ds as never,
+      { create: jest.fn() } as never,
+      { isDockerAvailable: () => false, getRunningBuiltinServices: jest.fn() } as never,
+      cache as never,
+      { refreshS3Availability: jest.fn() } as never,
+      undefined as never,
+    );
+  };
+
+  afterEach(() => (fs.readFileSync as jest.Mock).mockReturnValue(''));
+
+  it('degrades to configured-enabled + zero bans when the status file is absent/unparseable', async () => {
+    (fs.readFileSync as jest.Mock).mockReturnValue(''); // JSON.parse('') throws → caught
+    const status = await build(true).getStatus();
+    expect(status.fail2ban).toEqual({ enabled: true, bannedCount: 0 });
+  });
+
+  it('surfaces the host-produced ban figures when status.json is present', async () => {
+    (fs.readFileSync as jest.Mock).mockReturnValue(
+      JSON.stringify({
+        enabled: true,
+        bannedCount: 2,
+        bannedIps: ['203.0.113.9'],
+        updatedAt: '2026-08-10T00:00:00.000Z',
+      }),
+    );
+    const status = await build(false).getStatus();
+    expect(status.fail2ban).toEqual({
+      enabled: true,
+      bannedCount: 2,
+      bannedIps: ['203.0.113.9'],
+      updatedAt: '2026-08-10T00:00:00.000Z',
+    });
   });
 });

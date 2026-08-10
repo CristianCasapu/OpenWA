@@ -16,6 +16,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { SecurityModule } from './common/security/security.module';
 import { EngineModule } from './engine/engine.module';
 import { LoggerModule } from './common/services/logger.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -277,6 +278,7 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
     CacheModule,
     StorageModule,
     AuditModule,
+    SecurityModule, // Global: security-event log sink + fail2ban boundary observer
     EventsModule, // WebSocket real-time events
     ...queueModules,
     AuthModule,

@@ -119,6 +119,11 @@ services:
       - AUTH_LOCKOUT_WINDOW_MS=${AUTH_LOCKOUT_WINDOW_MS:-}
       - AUTH_LOCKOUT_BLOCK_MS=${AUTH_LOCKOUT_BLOCK_MS:-}
       - AUTH_LOCKOUT_MAX_KEYS=${AUTH_LOCKOUT_MAX_KEYS:-}
+      # Intrusion prevention (fail2ban), dashboard-managed; blank-forwarded like the knobs above.
+      - FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED:-}
+      - FAIL2BAN_MAXRETRY=${FAIL2BAN_MAXRETRY:-}
+      - FAIL2BAN_FINDTIME=${FAIL2BAN_FINDTIME:-}
+      - FAIL2BAN_BANTIME=${FAIL2BAN_BANTIME:-}
       - QUEUE_ENABLED=${QUEUE_ENABLED:-false}
       # Opt-in feature flags. Forwarded explicitly for the same reason as docker-compose.yml: this
       # file has no env_file, so a variable absent from this list never reaches the container and

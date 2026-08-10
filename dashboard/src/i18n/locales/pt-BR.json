@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Conectado",
       "disconnected": "Desconectado",
-      "disabled": "Desabilitado"
+      "disabled": "Desabilitado",
+      "enabled": "Ativado"
     },
     "restart": {
       "idleTitle": "⚙️ Configuração salva",
@@ -789,7 +790,26 @@
       "invalidFile": "Esse arquivo não é um backup de dados válido do OpenWA.",
       "importTooLarge": "O backup excede o limite da requisição. Aumente BODY_SIZE_LIMIT no servidor e tente novamente."
     },
-    "statusLoadError": "Não foi possível carregar o status atual da infraestrutura. Atualize para tentar novamente."
+    "statusLoadError": "Não foi possível carregar o status atual da infraestrutura. Atualize para tentar novamente.",
+    "fail2ban": {
+      "title": "Prevenção de intrusões (fail2ban)",
+      "description": "Bane IPs que enviam repetidamente uma chave de API incorreta ou requisições malformadas. O OpenWA gera o filtro e a jail do fail2ban; um serviço fail2ban no host precisa incluí-los para aplicar os banimentos.",
+      "enable": "Ativar a jail do fail2ban",
+      "enableDesc": "Gera a jail como ativada. O fail2ban do host ainda precisa incluir os arquivos gerados.",
+      "maxretry": "Tentativas máximas",
+      "maxretryDesc": "Falhas dentro da janela antes de um IP ser banido.",
+      "findtime": "Janela de detecção (segundos)",
+      "findtimeDesc": "Janela deslizante na qual as falhas são contadas.",
+      "bantime": "Duração do banimento (segundos)",
+      "bantimeDesc": "Por quanto tempo um IP banido é descartado. Padrão 86400 (24 horas).",
+      "bannedCount": "{{count}} IP(s) banidos no momento",
+      "updatedAt": "atualizado {{time}}",
+      "noStatusFile": "ainda sem status do host",
+      "hostNote": "O OpenWA não pode executar o fail2ban sozinho. Instale o fail2ban no host, inclua os arquivos gerados e recarregue o fail2ban.",
+      "snippetCopied": "Comandos de configuração do host copiados",
+      "copySnippet": "Copiar configuração do host",
+      "docs": "Guia de configuração"
+    }
   },
   "plugins": {
     "title": "Plugins",

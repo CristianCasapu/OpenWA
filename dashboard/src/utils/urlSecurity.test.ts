@@ -1,6 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isLocalhostHost, warnIfInsecureHttpUrl } from './urlSecurity.ts';
+import { isLocalhostHost, stripTrailingSlashes, warnIfInsecureHttpUrl } from './urlSecurity.ts';
+
+test('stripTrailingSlashes removes one or many trailing slashes and nothing else', () => {
+  // A trailing slash in VITE_WS_URL made io() parse the namespace as '//events' — never matching
+  // the gateway's '/events' — so this normalization is load-bearing for realtime, not cosmetic.
+  assert.equal(stripTrailingSlashes('https://host/'), 'https://host');
+  assert.equal(stripTrailingSlashes('https://host///'), 'https://host');
+  assert.equal(stripTrailingSlashes('https://host'), 'https://host');
+  assert.equal(stripTrailingSlashes('https://host/base/path/'), 'https://host/base/path');
+  assert.equal(stripTrailingSlashes(''), '');
+});
 
 test('isLocalhostHost recognizes loopback hosts', () => {
   assert.ok(isLocalhostHost('localhost'));

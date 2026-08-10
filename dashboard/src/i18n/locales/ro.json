@@ -752,7 +752,8 @@
     "statusLabels": {
       "connected": "Conectat",
       "disconnected": "Deconectat",
-      "disabled": "Dezactivat"
+      "disabled": "Dezactivat",
+      "enabled": "Activat"
     },
     "envPinNote": "Fixat prin variabila de mediu {{name}} — aceasta este valoarea în uz; modificările din panou nu se vor aplica până când variabila nu este eliminată.",
     "pendingRestartNote": "Salvat, dar încă neaplicat — repornește serverul pentru ca această modificare să intre în vigoare.",
@@ -793,7 +794,26 @@
     "toasts": {
       "saveFailed": "Salvare eșuată"
     },
-    "statusLoadError": "Starea curentă a infrastructurii nu a putut fi încărcată. Reîmprospătează pentru a încerca din nou."
+    "statusLoadError": "Starea curentă a infrastructurii nu a putut fi încărcată. Reîmprospătează pentru a încerca din nou.",
+    "fail2ban": {
+      "title": "Prevenirea intruziunilor (fail2ban)",
+      "description": "Blochează IP-urile care trimit repetat o cheie API greșită sau cereri malformate. OpenWA generează filtrul și jail-ul fail2ban; un serviciu fail2ban pe gazdă trebuie să le includă pentru a aplica banările.",
+      "enable": "Activează jail-ul fail2ban",
+      "enableDesc": "Generează jail-ul ca activat. Fail2ban de pe gazdă tot trebuie să includă fișierele generate.",
+      "maxretry": "Încercări maxime",
+      "maxretryDesc": "Eșecuri în interval înainte ca un IP să fie banat.",
+      "findtime": "Interval de detecție (secunde)",
+      "findtimeDesc": "Fereastra glisantă în care se numără eșecurile.",
+      "bantime": "Durata banării (secunde)",
+      "bantimeDesc": "Cât timp este blocat un IP banat. Implicit 86400 (24 de ore).",
+      "bannedCount": "{{count}} IP-uri banate în prezent",
+      "updatedAt": "actualizat {{time}}",
+      "noStatusFile": "încă fără status de la gazdă",
+      "hostNote": "OpenWA nu poate rula fail2ban singur. Instalează fail2ban pe gazdă, include fișierele generate, apoi reîncarcă fail2ban.",
+      "snippetCopied": "Comenzile de configurare a gazdei au fost copiate",
+      "copySnippet": "Copiază configurarea gazdei",
+      "docs": "Ghid de configurare"
+    }
   },
   "plugins": {
     "title": "Plugin-uri",

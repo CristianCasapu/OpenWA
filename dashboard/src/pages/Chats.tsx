@@ -39,7 +39,7 @@ import { useChannelMessages } from '../hooks/useChannelMessages';
 import { useContactStatuses } from '../hooks/useContactStatuses';
 import { useChatScrollPosition } from '../hooks/useChatScrollPosition';
 import { useCurrentEngineQuery } from '../hooks/queries';
-import { createTrailingCoalescer } from '../utils/trailingCoalescer';
+import { createTrailingCoalescer, type TrailingCoalescer } from '../utils/trailingCoalescer';
 import MessageBody from '../components/chats/MessageBody';
 import MediaLightbox, { type LightboxItem } from '../components/chats/MediaLightbox';
 import KindIcon from '../components/chats/KindIcon';
@@ -52,6 +52,10 @@ import './Chats.css';
 
 // Quiet window for coalescing mark-as-read RPCs (see markReadCoalescer below).
 const MARK_READ_DEBOUNCE_MS = 750;
+// Quiet window for coalescing WS-burst-driven sidebar refetches into one getChats call.
+const SIDEBAR_REFETCH_DEBOUNCE_MS = 300;
+// How long a clicked search hit stays armed while its chat loads before the intent expires.
+const PENDING_HIT_TTL_MS = 15_000;
 
 // mergeDeliveryStatus (forward-only delivery-tick merge) is shared with mergeOrAppend in utils/chatMessages
 // so the WS append path and the ack path apply the exact same rule.
@@ -248,7 +252,20 @@ export function Chats() {
   const activePhoneText =
     activePhoneDisplay ?? (resolvedPhoneQ.data ? formatPhoneForDisplay(resolvedPhoneQ.data) : null);
 
-  // 1. Fetch available connected sessions on mount
+  // Latest-refs for t/showErrorToast so the data-loading effects below do not re-fire when their
+  // identities rotate: `t` gets a new identity on every language switch (and showErrorToast
+  // follows it), so keying the session load on them re-ran it on language change — which
+  // unconditionally re-selected readySessions[0] and cascaded into clearing the active chat,
+  // channel, status contact, and any staged attachment. Translation freshness is preserved: the
+  // refs are read at call time, always after the effect that updates them has run.
+  const tRef = useRef(t);
+  const showErrorToastRef = useRef(showErrorToast);
+  useEffect(() => {
+    tRef.current = t;
+    showErrorToastRef.current = showErrorToast;
+  });
+
+  // 1. Fetch available connected sessions on mount (and only on mount — see the refs above)
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -260,32 +277,55 @@ export function Chats() {
           setSelectedSessionId(readySessions[0].id);
         }
       } catch (err) {
-        showErrorToast(t('chats.errors.loadSessions'), err instanceof Error ? err.message : undefined);
+        showErrorToastRef.current(tRef.current('chats.errors.loadSessions'), err instanceof Error ? err.message : undefined);
       } finally {
         setLoadingSessions(false);
       }
     };
     void loadSessions();
-  }, [t, showErrorToast]);
+  }, []);
 
-  // 2. Fetch chats when active session changes
-  const loadChats = useCallback(
-    async (sessionId: string) => {
-      if (!sessionId) return;
-      try {
-        setLoadingChats(true);
-        const data = await sessionApi.getChats(sessionId);
-        const sorted = [...data].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setChats(sorted);
-      } catch (err) {
-        showErrorToast(t('chats.errors.loadChats'), err instanceof Error ? err.message : undefined);
-        setChats([]);
-      } finally {
-        setLoadingChats(false);
-      }
-    },
-    [t, showErrorToast],
-  );
+  // 2. Fetch chats when active session changes. Monotonic sequence guard: a session switch or a
+  // WS-burst refetch can leave several getChats calls in flight at once, and without the guard a
+  // slow response for the PREVIOUS session (or an older burst) overwrote the current list — the
+  // same stale-response shape Sessions.tsx guards with its cancelled flag.
+  const chatsLoadSeq = useRef(0);
+  const loadChats = useCallback(async (sessionId: string) => {
+    if (!sessionId) return;
+    const seq = ++chatsLoadSeq.current;
+    try {
+      setLoadingChats(true);
+      const data = await sessionApi.getChats(sessionId);
+      if (seq !== chatsLoadSeq.current) return; // superseded by a newer load — discard, don't overwrite
+      const sorted = [...data].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      setChats(sorted);
+    } catch (err) {
+      if (seq !== chatsLoadSeq.current) return;
+      showErrorToastRef.current(tRef.current('chats.errors.loadChats'), err instanceof Error ? err.message : undefined);
+      setChats([]);
+    } finally {
+      if (seq === chatsLoadSeq.current) setLoadingChats(false);
+    }
+  }, []);
+
+  // Collapse WS-driven sidebar refetches: every message landing in a chat the sidebar doesn't
+  // know fires one, and a reconnect replay delivers a burst in one tick — each call previously
+  // stacked its own concurrent, unordered getChats. One trailing call per quiet window carries
+  // the same effect (the seq guard above keeps even overlapping ones ordered). Built inside an
+  // effect (not useMemo) so its pending timers are cancelled on unmount, and held in a ref for
+  // the WS handlers.
+  const sidebarRefetchCoalescerRef = useRef<TrailingCoalescer<string> | null>(null);
+  useEffect(() => {
+    const coalescer = createTrailingCoalescer<string>(sessionId => void loadChats(sessionId), SIDEBAR_REFETCH_DEBOUNCE_MS);
+    sidebarRefetchCoalescerRef.current = coalescer;
+    return () => {
+      coalescer.cancel();
+      sidebarRefetchCoalescerRef.current = null;
+    };
+  }, [loadChats]);
+  const requestSidebarRefetch = useCallback((sessionId: string) => {
+    sidebarRefetchCoalescerRef.current?.call(sessionId);
+  }, []);
 
   useEffect(() => {
     if (selectedSessionId) {
@@ -385,10 +425,10 @@ export function Chats() {
         return result.chats;
       });
       if (needsSidebarRefetch) {
-        void loadChats(selectedSessionId);
+        requestSidebarRefetch(selectedSessionId);
       }
     },
-    [selectedSessionId, activeChat, loadChats, markChatRead, appendMessage, onMessageAppended, t],
+    [selectedSessionId, activeChat, requestSidebarRefetch, markChatRead, appendMessage, onMessageAppended, t],
   );
 
   const handleIncomingMessageAck = useCallback(
@@ -501,10 +541,10 @@ export function Chats() {
         // The chat may never have been opened, so there is no message cache from which to prove
         // whether this was its latest row. Refresh summaries instead of guessing and overwriting the
         // sidebar with the body of an older edited message.
-        void loadChats(selectedSessionId);
+        requestSidebarRefetch(selectedSessionId);
       }
     },
-    [selectedSessionId, queryClient, loadChats],
+    [selectedSessionId, queryClient, requestSidebarRefetch],
   );
 
   // A contact's new story lands here instead of in the message pipeline; invalidate the statuses
@@ -512,7 +552,7 @@ export function Chats() {
   // and refetches on open — no background fetch either way.
   const handleStatusReceived = useCallback(
     (event: { sessionId: string }) => {
-      queryClient.invalidateQueries({ queryKey: ['contact-statuses', event.sessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['contact-statuses', event.sessionId] });
     },
     [queryClient],
   );
@@ -541,10 +581,10 @@ export function Chats() {
     reconnectHadConnected.current = decision.hadConnected;
     reconnectWasDisconnected.current = decision.wasDisconnected;
     if (decision.invalidate) {
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedSessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['messages', selectedSessionId] });
       // Statuses are live now (status.received): a story posted during the socket gap would
       // otherwise stay invisible until a focus refetch.
-      queryClient.invalidateQueries({ queryKey: ['contact-statuses', selectedSessionId] });
+      void queryClient.invalidateQueries({ queryKey: ['contact-statuses', selectedSessionId] });
     }
   }, [isConnected, selectedSessionId, queryClient]);
 
@@ -650,11 +690,25 @@ export function Chats() {
   // target chat may not be available at click time. pendingHitRef carries the intent across that
   // async gap: the chat-select effect picks it up once the list lands, and the scroll effect runs
   // once the messages have rendered.
-  const pendingHitRef = useRef<{ chatId: string; waMessageId: string } | null>(null);
+  const pendingHitRef = useRef<{ chatId: string; waMessageId: string; at: number } | null>(null);
+
+  // A pending hit whose chat never appears (deleted, filtered, beyond the server's list window)
+  // previously stayed armed forever — the layout effect then hijacked the scroll the moment the
+  // user MANUALLY opened that chat minutes later. Reads go through this helper so a stale intent
+  // expires instead.
+  const readPendingHit = () => {
+    const pending = pendingHitRef.current;
+    if (!pending) return null;
+    if (Date.now() - pending.at > PENDING_HIT_TTL_MS) {
+      pendingHitRef.current = null;
+      return null;
+    }
+    return pending;
+  };
 
   const handleSearchHit = useCallback(
     (hit: SearchHit) => {
-      pendingHitRef.current = { chatId: hit.chatId, waMessageId: hit.waMessageId };
+      pendingHitRef.current = { chatId: hit.chatId, waMessageId: hit.waMessageId, at: Date.now() };
       if (hit.sessionId !== selectedSessionId) {
         // Switching session triggers loadChats; the effect below selects the chat once the list lands.
         setSelectedSessionId(hit.sessionId);
@@ -687,7 +741,7 @@ export function Chats() {
 
   // After a session switch the chats list reloads — pick up the pending chat once it appears.
   useEffect(() => {
-    const pending = pendingHitRef.current;
+    const pending = readPendingHit();
     if (!pending || activeChat?.id === pending.chatId) return;
     const chat = chats.find(c => c.id === pending.chatId);
     if (chat) {
@@ -713,7 +767,7 @@ export function Chats() {
   // Degrades silently to session+chat selection when the element isn't present — the message is
   // still visible in the conversation.
   useLayoutEffect(() => {
-    const pending = pendingHitRef.current;
+    const pending = readPendingHit();
     if (!pending || !activeChat || activeChat.id !== pending.chatId) return;
     if (loadingMessages || messages.length === 0) return;
     const container = messagesContainerRef.current;

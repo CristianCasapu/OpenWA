@@ -1,7 +1,7 @@
 // API Service Layer for OpenWA Dashboard
 // Centralized API client with TypeScript types
 
-import { warnIfInsecureHttpUrl } from '../utils/urlSecurity';
+import { stripTrailingSlashes, warnIfInsecureHttpUrl } from '../utils/urlSecurity';
 
 // Resolve the API base URL. By default this is the same-origin relative path '/api',
 // correct when the dashboard and API are served from the same origin (the default
@@ -12,7 +12,7 @@ import { warnIfInsecureHttpUrl } from '../utils/urlSecurity';
 // same-origin '/api' and a split deployment failed with "Invalid API Key" (#91).
 // Exported so direct fetches (e.g. auth/validate in Login.tsx / App.tsx) honor VITE_API_URL
 // too — otherwise split-origin deployments break. Empty VITE_API_URL → '/api'.
-const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+const API_ORIGIN = stripTrailingSlashes(import.meta.env.VITE_API_URL ?? '');
 export const API_BASE_URL = `${API_ORIGIN}/api`;
 // Warn (not refuse — would break dev + TLS-terminating-proxy) when the API origin is an
 // insecure http:// URL pointing at a non-localhost host (API keys sent in cleartext).
@@ -471,6 +471,12 @@ export interface InfraStatus {
    * Optional only because a dashboard can be served by a gateway that predates the field.
    */
   envPinned?: string[];
+  /**
+   * Intrusion prevention (fail2ban). `enabled` is the configured intent; the ban figures come from a
+   * host-produced status file (the app cannot run fail2ban-client), degrading to zeros when it is
+   * absent. Optional only because a dashboard can be served by a gateway that predates the field.
+   */
+  fail2ban?: { enabled: boolean; bannedCount: number; bannedIps?: string[]; updatedAt?: string };
 }
 
 // Saved infrastructure config (from data/.env.generated) used to hydrate the form.
@@ -501,6 +507,7 @@ export interface SavedConfig {
     s3CredentialsSet: boolean;
   };
   engine: { type: string; headless: boolean; sessionDataPath: string; browserArgs: string };
+  fail2ban: { enabled: boolean; maxretry: number; findtime: number; bantime: number };
 }
 
 export interface SaveConfigPayload {
@@ -542,6 +549,12 @@ export interface SaveConfigPayload {
     headless?: boolean;
     sessionDataPath?: string;
     browserArgs?: string;
+  };
+  fail2ban?: {
+    enabled?: boolean;
+    maxretry?: number;
+    findtime?: number;
+    bantime?: number;
   };
 }
 
@@ -901,7 +914,19 @@ export const apiKeyApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: Partial<ApiKey>) =>
+  // Typed as the UPDATE DTO, not Partial<ApiKey>: the server validates with
+  // forbidNonWhitelisted, so spreading a response object (id, keyPrefix, usageCount, …) into the
+  // body would 400. Only these five fields are writable.
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      role?: ApiKey['role'];
+      allowedIps?: string[];
+      allowedSessions?: string[];
+      expiresAt?: string;
+    },
+  ) =>
     request<ApiKey>(`/auth/api-keys/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -1055,11 +1080,9 @@ export const healthApi = {
 export const infraApi = {
   getStatus: () => request<InfraStatus>('/infra/status'),
   getConfig: () => request<SavedConfig>('/infra/config'),
-  updateConfig: (config: Partial<InfraStatus>) =>
-    request<InfraStatus>('/infra/config', {
-      method: 'PUT',
-      body: JSON.stringify(config),
-    }),
+  // NOTE: saveConfig below is the ONLY client for PUT /infra/config. A second, unreferenced
+  // `updateConfig(Partial<InfraStatus>)` used to sit here targeting the same route with a shape
+  // the server's forbidNonWhitelisted validation rejects — deleted so nobody reaches for it.
   saveConfig: (config: SaveConfigPayload) =>
     request<{ message: string; saved: boolean; envPath: string; profiles: string[] }>('/infra/config', {
       method: 'PUT',

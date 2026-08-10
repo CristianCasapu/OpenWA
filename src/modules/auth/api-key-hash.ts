@@ -12,3 +12,19 @@ export function hashApiKey(rawKey: string, pepper?: string): string {
     ? createHmac('sha256', pepper).update(rawKey).digest('hex')
     : createHash('sha256').update(rawKey).digest('hex');
 }
+
+/**
+ * The hashes a raw key may currently be STORED under, in priority order, for a lookup.
+ *
+ * With a pepper set, the current format is the HMAC (index 0), but rows created before the pepper
+ * existed are still stored as plain SHA-256 (index 1). Returning both lets validateApiKey find a
+ * legacy row and transparently upgrade it in place (rehash-on-use), so enabling a pepper never
+ * invalidates existing keys. Without a pepper there is only the SHA-256 form. `hashApiKey` remains
+ * the single source of truth for how a key is WRITTEN (candidate 0).
+ */
+export function hashApiKeyCandidates(rawKey: string, pepper?: string): string[] {
+  const primary = hashApiKey(rawKey, pepper);
+  if (!pepper) return [primary];
+  const legacy = hashApiKey(rawKey); // unpeppered SHA-256, how pre-pepper rows were stored
+  return legacy === primary ? [primary] : [primary, legacy];
+}

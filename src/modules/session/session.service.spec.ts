@@ -890,6 +890,82 @@ describe('SessionService', () => {
       internals.engines.clear();
       internals.initializingSessions.clear();
     });
+
+    it('refuses a start() while a reconnect attempt is mid-flight, creating only one engine', async () => {
+      (repository.findOne as jest.Mock).mockResolvedValue(createMockSession());
+      (repository.update as jest.Mock).mockResolvedValue({ affected: 1 });
+      (engineFactory.create as jest.Mock).mockClear().mockReturnValue(mockEngine);
+
+      // Hold the reconnect inside its most dangerous window: past the old-engine eviction, before
+      // initializeEngine registers the replacement. Without the reservation this span is invisible
+      // to BOTH of start()'s guards, so a start() landing here created a SECOND engine for the same
+      // account — two live WhatsApp connections, the loser never destroyed.
+      let releaseTeardown: () => void = () => undefined;
+      const gate = new Promise<void>(resolve => {
+        releaseTeardown = resolve;
+      });
+      const internals = lifecycle as unknown as {
+        pendingTeardowns: Map<string, Promise<void>>;
+        initializingSessions: Set<string>;
+        executeReconnect: (id: string, session: unknown, state: unknown) => Promise<void>;
+      };
+      internals.pendingTeardowns.set('test-session', gate);
+
+      const reconnect = internals.executeReconnect('sess-uuid-1', createMockSession(), {
+        attempts: 1,
+        timer: null,
+        maxAttempts: 5,
+        baseDelay: 1000,
+      });
+      // The reservation is taken synchronously at executeReconnect entry, before its first await.
+      expect(internals.initializingSessions.has('sess-uuid-1')).toBe(true);
+
+      await expect(service.start('sess-uuid-1')).rejects.toThrow('Session is already starting');
+
+      releaseTeardown();
+      await reconnect;
+
+      // The decisive assertions: exactly ONE engine was ever created, it is the registered one,
+      // and the reservation is released so a later operator start() is not wedged.
+      expect(engineFactory.create).toHaveBeenCalledTimes(1);
+      const engines = (service as unknown as { engines: Map<string, unknown> }).engines;
+      expect(engines.get('sess-uuid-1')).toBe(mockEngine);
+      expect(internals.initializingSessions.has('sess-uuid-1')).toBe(false);
+    });
+
+    it('a reconnect attempt firing during an in-flight start() yields instead of double-initializing', async () => {
+      (repository.update as jest.Mock).mockResolvedValue({ affected: 1 });
+      (engineFactory.create as jest.Mock).mockClear().mockReturnValue(mockEngine);
+
+      // Gate start() inside its own window (the initial findOne round-trip) and fire a reconnect
+      // attempt mid-flight — the reverse interleaving of the case above: a timer that fired before
+      // start()'s cancelReconnect can already be executing, and it must yield to the start().
+      let releaseFindOne: (session: unknown) => void = () => undefined;
+      (repository.findOne as jest.Mock)
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              releaseFindOne = resolve;
+            }),
+        )
+        .mockResolvedValue(createMockSession());
+
+      const started = service.start('sess-uuid-1');
+      const internals = lifecycle as unknown as {
+        executeReconnect: (id: string, session: unknown, state: unknown) => Promise<void>;
+      };
+      await internals.executeReconnect('sess-uuid-1', createMockSession(), {
+        attempts: 1,
+        timer: null,
+        maxAttempts: 5,
+        baseDelay: 1000,
+      });
+
+      releaseFindOne(createMockSession());
+      await started;
+
+      expect(engineFactory.create).toHaveBeenCalledTimes(1);
+    });
   });
 
   // ── delete ────────────────────────────────────────────────────────
@@ -1170,6 +1246,22 @@ describe('SessionService', () => {
 
       // Synchronously, on the same tick, the mark must already be set.
       expect(stopping.has('sess-uuid-1')).toBe(true);
+    });
+
+    // A fence refusal must also UNDO the mark it just set: executeReconnect and isSessionRetired
+    // both read it, so a mark stranded by a 409 silently disables the session's automatic
+    // reconnect on this node — and the refused request tore nothing down that start() would fix.
+    it.each([
+      ['stop', (s: SessionService) => s.stop('sess-uuid-1')],
+      ['delete', (s: SessionService) => s.delete('sess-uuid-1')],
+    ])('%s() clears the stop mark again when the ownership fence refuses', async (_verb, call) => {
+      const ownership = withOwnership();
+      Object.assign(ownership, { isHeldByOtherNode: jest.fn().mockResolvedValue(true) });
+      const stopping = (lifecycle as unknown as { stoppingSessions: Set<string> }).stoppingSessions;
+
+      await expect(call(service)).rejects.toBeInstanceOf(ConflictException);
+
+      expect(stopping.has('sess-uuid-1')).toBe(false);
     });
   });
 

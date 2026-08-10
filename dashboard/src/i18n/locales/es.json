@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Conectado",
       "disconnected": "Desconectado",
-      "disabled": "Deshabilitado"
+      "disabled": "Deshabilitado",
+      "enabled": "Activado"
     },
     "restart": {
       "idleTitle": "⚙️ Configuración guardada",
@@ -789,7 +790,26 @@
       "invalidFile": "Ese archivo no es una copia de seguridad de datos válida de OpenWA.",
       "importTooLarge": "La copia de seguridad supera el límite de la solicitud. Aumenta BODY_SIZE_LIMIT en el servidor e inténtalo de nuevo."
     },
-    "statusLoadError": "No se pudo cargar el estado actual de la infraestructura. Actualiza para reintentar."
+    "statusLoadError": "No se pudo cargar el estado actual de la infraestructura. Actualiza para reintentar.",
+    "fail2ban": {
+      "title": "Prevención de intrusiones (fail2ban)",
+      "description": "Bloquea las IP que envían repetidamente una clave API incorrecta o solicitudes malformadas. OpenWA genera el filtro y la jaula de fail2ban; un servicio fail2ban en el host debe incluirlos para aplicar los bloqueos.",
+      "enable": "Activar la jaula de fail2ban",
+      "enableDesc": "Genera la jaula como activada. El fail2ban del host aún debe incluir los archivos generados.",
+      "maxretry": "Reintentos máximos",
+      "maxretryDesc": "Fallos dentro de la ventana antes de bloquear una IP.",
+      "findtime": "Ventana de detección (segundos)",
+      "findtimeDesc": "Ventana deslizante en la que se cuentan los fallos.",
+      "bantime": "Duración del bloqueo (segundos)",
+      "bantimeDesc": "Cuánto tiempo se descarta una IP bloqueada. Predeterminado 86400 (24 horas).",
+      "bannedCount": "{{count}} IP bloqueadas actualmente",
+      "updatedAt": "actualizado {{time}}",
+      "noStatusFile": "sin estado del host todavía",
+      "hostNote": "OpenWA no puede ejecutar fail2ban por sí mismo. Instala fail2ban en el host, incluye los archivos generados y recarga fail2ban.",
+      "snippetCopied": "Comandos de configuración del host copiados",
+      "copySnippet": "Copiar configuración del host",
+      "docs": "Guía de configuración"
+    }
   },
   "plugins": {
     "title": "Plugins",

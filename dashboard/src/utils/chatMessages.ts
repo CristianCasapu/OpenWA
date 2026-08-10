@@ -199,6 +199,16 @@ function mergeMessageMetadata(
 }
 
 /**
+ * Id for an optimistic outgoing bubble, unique per SEND rather than per millisecond. The merge
+ * below keys on `waMessageId ?? id`, so two same-tick sends sharing a `temp_${Date.now()}` id
+ * merged into a single bubble and the first send's reconcile then patched whichever row survived.
+ * No cryptographic strength needed; crypto.randomUUID is undefined over plain HTTP on a LAN IP.
+ */
+export function createTempMessageId(): string {
+  return `temp_${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+}
+
+/**
  * Append `incoming` to `list`. If an entry with the same identity exists, replace it in place.
  * Identity uses the same `waMessageId ?? id` key as mergeChatMessages — a DB row (id=UUID,
  * waMessageId=WA id) and a live WS message (id=WA id) for the same WhatsApp message must dedupe,

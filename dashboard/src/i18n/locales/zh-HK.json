@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "已連線",
       "disconnected": "已中斷連線",
-      "disabled": "已停用"
+      "disabled": "已停用",
+      "enabled": "已啟用"
     },
     "restart": {
       "idleTitle": "⚙️ 設定已儲存",
@@ -789,7 +790,26 @@
       "invalidFile": "該檔案並非有效的 OpenWA 資料備份。",
       "importTooLarge": "備份超出請求大小限制。請在伺服器上調高 BODY_SIZE_LIMIT 後重試。"
     },
-    "statusLoadError": "無法載入目前的基礎設施狀態。請重新整理以重試。"
+    "statusLoadError": "無法載入目前的基礎設施狀態。請重新整理以重試。",
+    "fail2ban": {
+      "title": "入侵防護（fail2ban）",
+      "description": "封鎖重複發送錯誤 API 金鑰或畸形請求的 IP。OpenWA 會產生 fail2ban 的過濾器與監獄（jail）；主機上的 fail2ban 服務必須引入它們才能執行封鎖。",
+      "enable": "啟用 fail2ban 監獄",
+      "enableDesc": "將監獄產生為已啟用。主機的 fail2ban 仍需引入產生的檔案。",
+      "maxretry": "最大重試次數",
+      "maxretryDesc": "在時間窗口內達到多少次失敗後封鎖 IP。",
+      "findtime": "偵測窗口（秒）",
+      "findtimeDesc": "統計失敗次數的滑動時間窗口。",
+      "bantime": "封鎖時長（秒）",
+      "bantimeDesc": "被封鎖 IP 被丟棄的時長。預設 86400（24 小時）。",
+      "bannedCount": "目前封鎖 {{count}} 個 IP",
+      "updatedAt": "更新於 {{time}}",
+      "noStatusFile": "尚無主機狀態",
+      "hostNote": "OpenWA 無法自行執行 fail2ban。請在主機上安裝 fail2ban，引入產生的檔案，然後重新載入 fail2ban。",
+      "snippetCopied": "已複製主機設定指令",
+      "copySnippet": "複製主機設定",
+      "docs": "設定指南"
+    }
   },
   "plugins": {
     "title": "外掛",

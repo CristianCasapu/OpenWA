@@ -273,6 +273,63 @@ describe('InfraDataController.importData round-trips export-data (no silent mess
     await outer.release();
   });
 
+  it('releases the query runner when the nested-transaction guard refuses', async () => {
+    await seedSession('s1');
+    const dump = await controller.exportData();
+
+    const outer = ds.createQueryRunner();
+    await outer.connect();
+    await outer.startTransaction();
+
+    // Capture the runner the import allocates so the refusal path's cleanup is observable. On
+    // Postgres an unreleased runner strands a pooled client for the life of the process, so the
+    // property pinned here is that the 409 path still calls release() — and never
+    // rollbackTransaction(), which with no transaction of its own would abort the OUTER
+    // transaction on the shared sqlite runner.
+    const realCreate = ds.createQueryRunner.bind(ds);
+    let releaseSpy: jest.SpyInstance | undefined;
+    let rollbackSpy: jest.SpyInstance | undefined;
+    jest.spyOn(ds, 'createQueryRunner').mockImplementation((...args: Parameters<typeof realCreate>) => {
+      const runner = realCreate(...args);
+      releaseSpy = jest.spyOn(runner, 'release');
+      rollbackSpy = jest.spyOn(runner, 'rollbackTransaction');
+      return runner;
+    });
+
+    const refusal = await controller.importData({ tables: dump.tables }).catch((e: unknown) => e);
+    expect((refusal as ConflictException).getStatus()).toBe(409);
+    expect((refusal as ConflictException).getResponse()).toMatchObject({ code: 'IMPORT_NESTED_TRANSACTION' });
+    expect(releaseSpy).toHaveBeenCalledTimes(1);
+    expect(rollbackSpy).not.toHaveBeenCalled();
+    jest.restoreAllMocks();
+
+    await outer.rollbackTransaction();
+    await outer.release();
+  });
+
+  it('releases the query runner when the transaction cannot open', async () => {
+    await seedSession('s1');
+    const dump = await controller.exportData();
+
+    const realCreate = ds.createQueryRunner.bind(ds);
+    let releaseSpy: jest.SpyInstance | undefined;
+    let rollbackSpy: jest.SpyInstance | undefined;
+    jest.spyOn(ds, 'createQueryRunner').mockImplementation((...args: Parameters<typeof realCreate>) => {
+      const runner = realCreate(...args);
+      runner.startTransaction = () => Promise.reject(new Error('cannot start a transaction within a transaction'));
+      releaseSpy = jest.spyOn(runner, 'release');
+      rollbackSpy = jest.spyOn(runner, 'rollbackTransaction');
+      return runner;
+    });
+
+    await expect(controller.importData({ tables: dump.tables })).rejects.toThrow('within a transaction');
+    expect(releaseSpy).toHaveBeenCalledTimes(1);
+    // A pre-BEGIN failure must not roll back: there is no transaction of this import's own to
+    // discard, and on the shared sqlite runner a rollback would tear down another caller's.
+    expect(rollbackSpy).not.toHaveBeenCalled();
+    jest.restoreAllMocks();
+  });
+
   it('runs normally once no other transaction holds the connection', async () => {
     await seedSession('s1');
     const dump = await controller.exportData();

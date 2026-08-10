@@ -1005,6 +1005,47 @@ describe('InfraConfigController.getConfig (#226)', () => {
     expect(JSON.stringify(cfg)).not.toContain('secret');
     expect(JSON.stringify(cfg)).not.toContain('"ak"');
   });
+
+  it('hydrates the fail2ban block with saved values, falling back to the defaults', () => {
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    (fs.readFileSync as jest.Mock).mockReturnValue('FAIL2BAN_ENABLED=true\nFAIL2BAN_MAXRETRY=3\n');
+    const controller = new InfraConfigController({} as never, {} as never, {} as never);
+
+    const cfg = controller.getConfig();
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    (fs.readFileSync as jest.Mock).mockReturnValue('');
+
+    expect(cfg.fail2ban).toEqual({ enabled: true, maxretry: 3, findtime: 600, bantime: 86400 });
+  });
+});
+
+describe('InfraConfigController.saveConfig fail2ban section', () => {
+  it('persists the fail2ban knobs and regenerates the host-side config from the merged values', () => {
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    (fs.writeFileSync as jest.Mock).mockClear();
+    const regenerate = jest.fn();
+    const controller = new InfraConfigController(
+      {} as never, // engineFactory
+      {} as never, // dockerService
+      {} as never, // shutdownService
+      undefined, // auditService
+      { regenerate } as never, // fail2banConfigService
+    );
+
+    controller.saveConfig({
+      fail2ban: { enabled: true, maxretry: 4, findtime: 300, bantime: 43200 },
+    });
+
+    const env = ((fs.writeFileSync as jest.Mock).mock.calls as Array<[string, string]>)[0][1];
+    expect(env).toContain('FAIL2BAN_ENABLED=true');
+    expect(env).toContain('FAIL2BAN_MAXRETRY=4');
+    expect(env).toContain('FAIL2BAN_FINDTIME=300');
+    expect(env).toContain('FAIL2BAN_BANTIME=43200');
+    // The regenerate runs off the merged map so the new values reach the host jail before restart.
+    expect(regenerate).toHaveBeenCalledTimes(1);
+    const mergedArg = (regenerate.mock.calls as Array<[Record<string, string>]>)[0][0];
+    expect(mergedArg).toMatchObject({ FAIL2BAN_ENABLED: 'true', FAIL2BAN_BANTIME: '43200' });
+  });
 });
 
 describe('InfraConfigController.requestRestart constrains teardown to managed profiles', () => {

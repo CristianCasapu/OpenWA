@@ -2,6 +2,7 @@ import { useState, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 import { ToastContext, type Toast } from '../hooks/useToast';
+import { isConnectionLossError } from '../utils/connectionError';
 import './Toast.css';
 
 // A toast id needs no cryptographic strength; crypto.randomUUID is undefined over plain HTTP on a LAN IP.
@@ -46,16 +47,11 @@ export function ToastProvider({ children }: ToastProviderProps) {
   );
 
   const error = useCallback(
-    (title: string, message?: string) => {
-      const isConnectionError =
-        message?.toLowerCase().includes('failed to fetch') ||
-        message?.toLowerCase().includes('networkerror') ||
-        message?.toLowerCase().includes('http 502') ||
-        message?.toLowerCase().includes('http 503') ||
-        title.toLowerCase().includes('failed to fetch') ||
-        title.toLowerCase().includes('networkerror');
-
-      if (isConnectionError) {
+    (title: string, message?: string, err?: unknown) => {
+      // Classified by the structured status/code api.ts carries on thrown errors when the caller
+      // passes the error object through; the substring heuristics inside are only the fallback
+      // for text-only call sites.
+      if (isConnectionLossError(err, title, message)) {
         // De-dupe on the stable key (not the translated title) so a downed backend shows one toast.
         // The auto-dismiss timer is scheduled OUTSIDE the updater: state updaters must be
         // side-effect-free (React Strict Mode runs them twice, which would schedule two timers).

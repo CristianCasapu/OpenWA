@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Connected",
       "disconnected": "Disconnected",
-      "disabled": "Disabled"
+      "disabled": "Disabled",
+      "enabled": "Enabled"
     },
     "envPinNote": "Pinned by the environment variable {{name}} — this is the running value; dashboard changes won't apply until that variable is unset.",
     "pendingRestartNote": "Saved, but not applied yet — restart the server for this change to take effect.",
@@ -789,7 +790,26 @@
     "toasts": {
       "saveFailed": "Save Failed"
     },
-    "statusLoadError": "Couldn't load the current infrastructure status. Refresh to try again."
+    "statusLoadError": "Couldn't load the current infrastructure status. Refresh to try again.",
+    "fail2ban": {
+      "title": "Intrusion Prevention (fail2ban)",
+      "description": "Ban IPs that repeatedly send a wrong API key or malformed requests. OpenWA generates the fail2ban filter and jail; a fail2ban service on the host must include them to enforce bans.",
+      "enable": "Enable fail2ban jail",
+      "enableDesc": "Generate the jail as enabled. The host fail2ban still needs to include the generated files.",
+      "maxretry": "Max retries",
+      "maxretryDesc": "Failures within the window before an IP is banned.",
+      "findtime": "Find time (seconds)",
+      "findtimeDesc": "Sliding window over which failures are counted.",
+      "bantime": "Ban time (seconds)",
+      "bantimeDesc": "How long a banned IP is dropped. Default 86400 (24 hours).",
+      "bannedCount": "{{count}} IP(s) currently banned",
+      "updatedAt": "updated {{time}}",
+      "noStatusFile": "no host status yet",
+      "hostNote": "OpenWA cannot run fail2ban itself. Install fail2ban on the host, include the generated files, then reload fail2ban.",
+      "snippetCopied": "Host setup commands copied",
+      "copySnippet": "Copy host setup",
+      "docs": "Setup guide"
+    }
   },
   "plugins": {
     "title": "Plugins",

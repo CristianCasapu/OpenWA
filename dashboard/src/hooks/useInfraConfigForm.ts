@@ -41,11 +41,19 @@ export interface EngineConfig {
   browserArgs: string;
 }
 
+export interface Fail2banConfig {
+  enabled: boolean;
+  maxretry: number;
+  findtime: number;
+  bantime: number;
+}
+
 export interface InfraConfigForm {
   dbConfig: DatabaseConfig;
   redisConfig: RedisConfig;
   storageConfig: StorageConfig;
   engineConfig: EngineConfig;
+  fail2banConfig: Fail2banConfig;
   redisEnabled: boolean;
   queueEnabled: boolean;
   setRedisEnabled: (enabled: boolean) => void;
@@ -56,8 +64,12 @@ export interface InfraConfigForm {
   updateRedisConfig: (key: keyof RedisConfig, value: string | boolean) => void;
   updateStorageConfig: (key: keyof StorageConfig, value: string | boolean) => void;
   updateEngineConfig: (key: keyof EngineConfig, value: string | boolean) => void;
+  updateFail2banConfig: (key: keyof Fail2banConfig, value: number | boolean) => void;
   buildSavePayload: () => SaveConfigPayload;
 }
+
+/** fail2ban form defaults — mirror the backend FAIL2BAN_DEFAULTS (bantime 24h). */
+const FAIL2BAN_FORM_DEFAULTS: Fail2banConfig = { enabled: false, maxretry: 5, findtime: 600, bantime: 86400 };
 
 /**
  * Owns the editable infrastructure form: dbConfig/redisConfig/storageConfig/engineConfig, the
@@ -113,6 +125,8 @@ export function useInfraConfigForm(
     sessionDataPath: './data/sessions',
     browserArgs: '--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu',
   });
+
+  const [fail2banConfig, setFail2banConfig] = useState<Fail2banConfig>(FAIL2BAN_FORM_DEFAULTS);
 
   const [redisEnabled, setRedisEnabledState] = useState(false);
   const [queueEnabled, setQueueEnabled] = useState(false);
@@ -199,6 +213,16 @@ export function useInfraConfigForm(
       sessionDataPath: savedConfig.engine.sessionDataPath || prev.sessionDataPath,
       browserArgs: savedConfig.engine.browserArgs || prev.browserArgs,
     }));
+    // fail2ban is a flat, non-secret section — seed all four knobs from the saved config (a gateway
+    // that predates the field omits it, so fall back to the defaults key-by-key).
+    if (savedConfig.fail2ban) {
+      setFail2banConfig({
+        enabled: savedConfig.fail2ban.enabled,
+        maxretry: savedConfig.fail2ban.maxretry || FAIL2BAN_FORM_DEFAULTS.maxretry,
+        findtime: savedConfig.fail2ban.findtime || FAIL2BAN_FORM_DEFAULTS.findtime,
+        bantime: savedConfig.fail2ban.bantime || FAIL2BAN_FORM_DEFAULTS.bantime,
+      });
+    }
   }, [savedConfig]);
 
   // Lock the editable form once both sources have seeded it, so later background refetches only refresh
@@ -235,6 +259,8 @@ export function useInfraConfigForm(
     if (key === 'type') engineTouched.current = true;
     setEngineConfig(prev => ({ ...prev, [key]: value }));
   };
+  const updateFail2banConfig = (key: keyof Fail2banConfig, value: number | boolean) =>
+    setFail2banConfig(prev => ({ ...prev, [key]: value }));
 
   // Disabling Redis also disables the queue, since queue processing depends on it.
   const setRedisEnabled = (enabled: boolean) => {
@@ -262,6 +288,7 @@ export function useInfraConfigForm(
     // still holds its useState default, and sending that would persist ENGINE_TYPE and silently flip
     // the engine on the next restart. The backend treats an absent `type` as "leave ENGINE_TYPE alone".
     engine: engineTypeKnown() ? { ...engineConfig } : { ...engineConfig, type: undefined },
+    fail2ban: { ...fail2banConfig },
   });
 
   return {
@@ -269,6 +296,7 @@ export function useInfraConfigForm(
     redisConfig,
     storageConfig,
     engineConfig,
+    fail2banConfig,
     redisEnabled,
     queueEnabled,
     setRedisEnabled,
@@ -278,6 +306,7 @@ export function useInfraConfigForm(
     updateRedisConfig,
     updateStorageConfig,
     updateEngineConfig,
+    updateFail2banConfig,
     buildSavePayload,
   };
 }

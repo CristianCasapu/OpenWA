@@ -6,6 +6,7 @@ import { AuthService } from '../auth.service';
 import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../audit/entities/audit-log.entity';
+import { SecurityEventLogService } from '../../../common/security/security-event-log.service';
 
 function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
   return {
@@ -53,6 +54,7 @@ describe('ApiKeyGuard', () => {
   let reflector: jest.Mocked<Reflector>;
   let configService: jest.Mocked<Partial<ConfigService>>;
   let auditService: jest.Mocked<Partial<AuditService>>;
+  let securityLog: jest.Mocked<Pick<SecurityEventLogService, 'logWrongApiKey' | 'logInvalidRequest'>>;
 
   function buildGuard(trustedProxies: string[] = []): ApiKeyGuard {
     configService = {
@@ -63,6 +65,7 @@ describe('ApiKeyGuard', () => {
       reflector,
       configService as ConfigService,
       auditService as AuditService,
+      securityLog as unknown as SecurityEventLogService,
     );
   }
 
@@ -78,6 +81,11 @@ describe('ApiKeyGuard', () => {
 
     auditService = {
       logWarn: jest.fn().mockResolvedValue(null),
+    };
+
+    securityLog = {
+      logWrongApiKey: jest.fn(),
+      logInvalidRequest: jest.fn(),
     };
 
     guard = buildGuard();
@@ -154,6 +162,19 @@ describe('ApiKeyGuard', () => {
     );
   });
 
+  it('emits a wrong_api_key security line (for fail2ban) with the resolved IP when a key is rejected', async () => {
+    reflector.getAllAndOverride.mockReturnValueOnce(false); // not public
+    (authService.validateApiKey as jest.Mock).mockRejectedValue(new UnauthorizedException('Invalid API key'));
+
+    const context = createMockContext({ 'x-api-key': 'bad-key' }, {}, '203.0.113.9');
+    await expect(guard.canActivate(context)).rejects.toThrow('Invalid API key');
+
+    expect(securityLog.logWrongApiKey).toHaveBeenCalledWith('rest', '203.0.113.9');
+    // The specific line is emitted; the generic invalid_request one is left to the boundary observer,
+    // which the per-request claim then suppresses.
+    expect(securityLog.logInvalidRequest).not.toHaveBeenCalled();
+  });
+
   it('records an audit event when a missing key is rejected', async () => {
     reflector.getAllAndOverride.mockReturnValueOnce(false);
 
@@ -164,7 +185,7 @@ describe('ApiKeyGuard', () => {
     expect(auditService.logWarn).toHaveBeenCalledWith(AuditAction.API_KEY_AUTH_FAILED, expect.any(Object));
   });
 
-  it('does not record an audit event on a successful authorization', async () => {
+  it('does not record an audit event or a security line on a successful authorization', async () => {
     reflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(undefined);
     (authService.validateApiKey as jest.Mock).mockResolvedValue(createMockApiKey());
 
@@ -173,6 +194,7 @@ describe('ApiKeyGuard', () => {
     await new Promise(resolve => setImmediate(resolve));
 
     expect(auditService.logWarn).not.toHaveBeenCalled();
+    expect(securityLog.logWrongApiKey).not.toHaveBeenCalled();
   });
 
   it('should reject when role permission is insufficient', async () => {

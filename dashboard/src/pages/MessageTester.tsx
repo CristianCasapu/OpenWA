@@ -13,6 +13,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRole } from '../hooks/useRole';
 import { useSessionsQuery, useSessionGroupsQuery } from '../hooks/queries';
 import { parseBulkRecipients, BULK_MAX_RECIPIENTS } from '../utils/bulkRecipients';
+import { MEDIA_UPLOAD_MAX_BYTES } from '../utils/mediaUpload';
 import { PageHeader } from '../components/PageHeader';
 import './MessageTester.css';
 
@@ -77,14 +78,14 @@ const fallbackMime: Record<(typeof messageTypes)[number], string> = {
   bulk: 'application/octet-stream',
 };
 
-// Client pre-check before base64-encoding an upload. Aligned with the default request-body limit: base64
-// inflates ~1.33x, so ~18 MiB raw stays under the 25 MiB BODY_SIZE_LIMIT and lets the backend reject with a
-// clear 413 instead of the tab OOMing on a multi-hundred-MB pick before the request is even sent. The
-// backend's MEDIA_DOWNLOAD_MAX_BYTES (default 50 MiB) stays authoritative for URL sends (fetched server-side).
-const MEDIA_UPLOAD_MAX_BYTES = 18 * 1024 * 1024;
-
 // Batch statuses that stop the progress polling (mirrors the backend BatchStatus enum).
 const TERMINAL_BATCH_STATUSES: readonly BatchStatus[] = ['completed', 'cancelled', 'failed'];
+
+// Poll-option rows need identity that survives removals (no cryptographic strength required).
+const newPollOption = (): { id: string; value: string } => ({
+  id: crypto.randomUUID?.() ?? `opt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  value: '',
+});
 
 export function MessageTester() {
   const { t } = useTranslation();
@@ -125,7 +126,12 @@ export function MessageTester() {
   const [contactNumber, setContactNumber] = useState('');
   const [pollQuestion, setPollQuestion] = useState('');
   // WhatsApp caps polls at 2..12 options; rows are trimmed and empty ones dropped at send time.
-  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  // Rows carry a stable id: keyed by index, removing a middle option made React reuse the wrong
+  // input node for every row after it (focus/caret/IME state landed on the wrong logical row).
+  const [pollOptions, setPollOptions] = useState<{ id: string; value: string }[]>(() => [
+    newPollOption(),
+    newPollOption(),
+  ]);
   const [allowMultipleAnswers, setAllowMultipleAnswers] = useState(false);
   const [forwardFrom, setForwardFrom] = useState('');
   const [forwardTo, setForwardTo] = useState('');
@@ -238,7 +244,7 @@ export function MessageTester() {
 
   const isMediaMessageType = mediaMessageTypes.includes(messageType);
   const bulkRecipientList = parseBulkRecipients(bulkRecipients);
-  const pollOptionsFilled = pollOptions.map(o => o.trim()).filter(o => o.length > 0);
+  const pollOptionsFilled = pollOptions.map(o => o.value.trim()).filter(o => o.length > 0);
   const lat = parseFloat(latitude);
   const lng = parseFloat(longitude);
   const delayMs = bulkDelay.trim() === '' ? undefined : parseInt(bulkDelay, 10);
@@ -689,17 +695,21 @@ export function MessageTester() {
               <div className="form-group">
                 <label>{t('messageTester.pollOptions')}</label>
                 {pollOptions.map((option, index) => (
-                  <div className="poll-option-row" key={index}>
+                  <div className="poll-option-row" key={option.id}>
                     <input
                       type="text"
-                      value={option}
-                      onChange={e => setPollOptions(prev => prev.map((o, i) => (i === index ? e.target.value : o)))}
+                      value={option.value}
+                      onChange={e =>
+                        setPollOptions(prev =>
+                          prev.map(o => (o.id === option.id ? { ...o, value: e.target.value } : o)),
+                        )
+                      }
                       placeholder={t('messageTester.pollOptionPlaceholder', { index: index + 1 })}
                     />
                     <button
                       type="button"
                       className="remove-option-btn"
-                      onClick={() => setPollOptions(prev => prev.filter((_, i) => i !== index))}
+                      onClick={() => setPollOptions(prev => prev.filter(o => o.id !== option.id))}
                       disabled={pollOptions.length <= 2}
                       aria-label={t('messageTester.removeOption')}
                     >
@@ -710,7 +720,7 @@ export function MessageTester() {
                 <button
                   type="button"
                   className="add-option-btn"
-                  onClick={() => setPollOptions(prev => [...prev, ''])}
+                  onClick={() => setPollOptions(prev => [...prev, newPollOption()])}
                   disabled={pollOptions.length >= 12}
                 >
                   <Plus size={14} /> {t('messageTester.addOption')}

@@ -13,6 +13,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { SecurityEventLogService } from '../../common/security/security-event-log.service';
 import { resolveCorsPolicy } from '../../config/bootstrap-security';
 import { resolveClientIp as resolveRequestClientIp, type RequestLike } from '../../common/utils/ip';
 import type { ApiKey } from '../auth/entities/api-key.entity';
@@ -129,6 +130,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   constructor(
     private readonly authService: AuthService,
     private readonly auditService: AuditService,
+    private readonly securityLog: SecurityEventLogService,
   ) {
     this.rateLimits = readWsRateLimitConfig();
     this.frameLimiter = new TokenBucketLimiter(this.rateLimits.framePerSecond, this.rateLimits.frameBurst);
@@ -247,6 +249,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         metadata: { surface: 'websocket' },
         errorMessage: 'missing API key',
       });
+      this.securityLog.logWrongApiKey('ws', clientIp);
       client.emit('message', this.createError('UNAUTHORIZED', 'API key required'));
       client.disconnect();
       return;
@@ -302,6 +305,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         metadata: { surface: 'websocket' },
         errorMessage: error instanceof Error ? error.message : String(error),
       });
+      this.securityLog.logWrongApiKey('ws', clientIp);
       client.emit('message', this.createError('UNAUTHORIZED', 'Authentication failed'));
       client.disconnect();
     }
@@ -355,6 +359,9 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       case 'ping':
         return this.handlePing(client, message.requestId);
       default:
+        // Unknown frame type on an (already authenticated) socket — a malformed request over the WS
+        // surface. Emit the fail2ban `invalid_request` line so probing this surface is bannable too.
+        this.securityLog.logInvalidRequest('ws', this.resolveClientIp(client));
         return this.createError(
           'INVALID_MESSAGE',
           `Unknown message type`,

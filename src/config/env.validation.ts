@@ -218,6 +218,11 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     'SESSION_LEASE_HEARTBEAT_MS',
     'SESSION_TAKEOVER_SWEEP_MS',
     'SESSION_PROXY_TIMEOUT_MS',
+    // fail2ban jail knobs: a 0/garbage value would generate a jail with a broken window or an instant
+    // (or never-lifting) ban, so require positive integers. Read with the same posInt clamp downstream.
+    'FAIL2BAN_MAXRETRY',
+    'FAIL2BAN_FINDTIME',
+    'FAIL2BAN_BANTIME',
   ]) {
     checkPositiveInt(key);
   }
@@ -336,6 +341,9 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     // Perf/observability only, but same silent-typo class.
     'CACHE_ENABLED',
     'DATABASE_LOGGING',
+    // fail2ban master switch. Read with `=== 'true'`; a typo would silently leave the jail disabled
+    // (or generate it disabled), so probing would go unbanned with nothing in the logs to explain why.
+    'FAIL2BAN_ENABLED',
     // DELIBERATELY NOT LISTED. `MCP_READONLY` is read `!== 'false'` and mcp.server.spec.ts asserts
     // that `yes` keeps it read-only — a tolerance the repo tests on purpose. `PUPPETEER_HEADLESS` is
     // read `!== 'false'` and `new` is a real Puppeteer value that works today. Both fail toward the

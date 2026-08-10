@@ -154,6 +154,32 @@ export class StorageConfigDto {
   s3Endpoint?: string;
 }
 
+export class Fail2banConfigDto {
+  @ApiPropertyOptional()
+  @ToStrictBoolean()
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Failures within findtime before an IP is banned' })
+  @ToStrictNumber()
+  @IsOptional()
+  @IsNumber()
+  maxretry?: number;
+
+  @ApiPropertyOptional({ description: 'Sliding window, in seconds, over which maxretry is counted' })
+  @ToStrictNumber()
+  @IsOptional()
+  @IsNumber()
+  findtime?: number;
+
+  @ApiPropertyOptional({ description: 'Ban duration in seconds (default 86400 = 24h)' })
+  @ToStrictNumber()
+  @IsOptional()
+  @IsNumber()
+  bantime?: number;
+}
+
 export class EngineConfigDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -207,4 +233,10 @@ export class SaveConfigDto {
   @ValidateNested()
   @Type(() => EngineConfigDto)
   engine?: EngineConfigDto;
+
+  @ApiPropertyOptional({ type: () => Fail2banConfigDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => Fail2banConfigDto)
+  fail2ban?: Fail2banConfigDto;
 }

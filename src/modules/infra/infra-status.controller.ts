@@ -21,7 +21,9 @@ import { CacheService } from '../../common/cache/cache.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { createLogger } from '../../common/services/logger.service';
 import { readGeneratedEnv } from './generated-env';
+import { Fail2banConfigService } from './fail2ban-config.service';
 import { isEnvPinned } from '../../config/env-precedence';
+import * as fs from 'fs';
 
 interface InfraStatus {
   // `builtIn` reflects whether OpenWA's own bundled container is actually running and backing this
@@ -49,6 +51,10 @@ interface InfraStatus {
   // that layer is. Reported rather than inferred: a running-vs-saved mismatch is also what a save that
   // has not been restarted yet looks like, and the two need opposite advice (#1082).
   envPinned: string[];
+  // Intrusion prevention. `enabled` is the configured intent; the ban figures come from the
+  // host-produced data/fail2ban/status.json (the app cannot run fail2ban-client itself), degrading to
+  // zeros when that file is absent (host fail2ban not wired up yet).
+  fail2ban: { enabled: boolean; bannedCount: number; bannedIps?: string[]; updatedAt?: string };
 }
 
 /**
@@ -223,7 +229,33 @@ export class InfraStatusController {
         ...(engineType === 'whatsapp-web.js' ? { webVersion, webVersionSource } : {}),
       },
       envPinned: DASHBOARD_SELECTION_ENV_KEYS.filter(isEnvPinned),
+      fail2ban: this.readFail2banStatus(),
     };
+  }
+
+  /**
+   * Read the host-produced fail2ban status file (data/fail2ban/status.json). The app cannot run
+   * `fail2ban-client`, so a host action/cron writes that file; we only read it, degrading to the
+   * configured-enabled flag with zero bans when it is absent or unparseable (host not wired up yet).
+   */
+  private readFail2banStatus(): { enabled: boolean; bannedCount: number; bannedIps?: string[]; updatedAt?: string } {
+    const configuredEnabled = this.configService.get<boolean>('fail2ban.enabled', false);
+    try {
+      const parsed = JSON.parse(fs.readFileSync(Fail2banConfigService.statusPath(), 'utf8')) as Partial<{
+        enabled: boolean;
+        bannedCount: number;
+        bannedIps: string[];
+        updatedAt: string;
+      }>;
+      return {
+        enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : configuredEnabled,
+        bannedCount: Number.isFinite(parsed.bannedCount) ? Number(parsed.bannedCount) : 0,
+        ...(Array.isArray(parsed.bannedIps) ? { bannedIps: parsed.bannedIps.map(String) } : {}),
+        ...(parsed.updatedAt ? { updatedAt: String(parsed.updatedAt) } : {}),
+      };
+    } catch {
+      return { enabled: configuredEnabled, bannedCount: 0 };
+    }
   }
 
   /** Saved built-in intent flags from data/.env.generated — the fallback when Docker isn't reachable. */

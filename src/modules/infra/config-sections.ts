@@ -1,6 +1,19 @@
 import { BadRequestException } from '@nestjs/common';
 import type { EngineFactory } from '../../engine/engine.factory';
-import { DatabaseConfigDto, EngineConfigDto, RedisConfigDto, StorageConfigDto } from './dto/save-config.dto';
+import {
+  DatabaseConfigDto,
+  EngineConfigDto,
+  Fail2banConfigDto,
+  RedisConfigDto,
+  StorageConfigDto,
+} from './dto/save-config.dto';
+
+/**
+ * fail2ban jail defaults. Single source of truth shared by the config applier, the dashboard
+ * hydrate (getConfig), and the config generator (Fail2banConfigService) so the three never drift.
+ * bantime defaults to 24h per the operator request; maxretry/findtime match fail2ban's own defaults.
+ */
+export const FAIL2BAN_DEFAULTS = { maxretry: 5, findtime: 600, bantime: 86400 } as const;
 
 // Mutable accumulator threaded through the pipeline stages and per-section appliers extracted
 // from saveConfig: `updates` collects the values this payload writes, `staleKeys` the keys a mode
@@ -189,6 +202,23 @@ export function applyStorageSection(
       }
     }
   }
+}
+
+// Intrusion prevention (fail2ban). A flat, secret-free section: the four knobs the dashboard edits,
+// each written only when the payload carries it (a partial save leaves the others untouched). The
+// generated jail/filter files are (re)written by Fail2banConfigService, not here — this only persists
+// the intent to data/.env.generated. A positive-integer clamp mirrors env.validation so a 0/garbage
+// value cannot disable the window downstream.
+export function applyFail2banSection(fail2ban: Fail2banConfigDto, ctx: ConfigSectionContext): void {
+  const { updates } = ctx;
+  if (fail2ban.enabled !== undefined) updates.FAIL2BAN_ENABLED = fail2ban.enabled ? 'true' : 'false';
+  const posInt = (value: number | undefined, fallback: number): string =>
+    String(value !== undefined && Number.isInteger(value) && value >= 1 ? value : fallback);
+  if (fail2ban.maxretry !== undefined)
+    updates.FAIL2BAN_MAXRETRY = posInt(fail2ban.maxretry, FAIL2BAN_DEFAULTS.maxretry);
+  if (fail2ban.findtime !== undefined)
+    updates.FAIL2BAN_FINDTIME = posInt(fail2ban.findtime, FAIL2BAN_DEFAULTS.findtime);
+  if (fail2ban.bantime !== undefined) updates.FAIL2BAN_BANTIME = posInt(fail2ban.bantime, FAIL2BAN_DEFAULTS.bantime);
 }
 
 // Engine. NOTE: PUPPETEER_HEADLESS / SESSION_DATA_PATH / PUPPETEER_ARGS are the names

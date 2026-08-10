@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Connecté",
       "disconnected": "Déconnecté",
-      "disabled": "Désactivé"
+      "disabled": "Désactivé",
+      "enabled": "Activé"
     },
     "restart": {
       "idleTitle": "⚙️ Configuration enregistrée",
@@ -789,7 +790,26 @@
       "invalidFile": "Ce fichier n'est pas une sauvegarde de données OpenWA valide.",
       "importTooLarge": "La sauvegarde dépasse la limite de la requête. Augmentez BODY_SIZE_LIMIT sur le serveur, puis réessayez."
     },
-    "statusLoadError": "Impossible de charger l'état actuel de l'infrastructure. Actualisez pour réessayer."
+    "statusLoadError": "Impossible de charger l'état actuel de l'infrastructure. Actualisez pour réessayer.",
+    "fail2ban": {
+      "title": "Prévention des intrusions (fail2ban)",
+      "description": "Bannit les IP qui envoient de façon répétée une clé API incorrecte ou des requêtes malformées. OpenWA génère le filtre et la prison fail2ban ; un service fail2ban sur l'hôte doit les inclure pour appliquer les bannissements.",
+      "enable": "Activer la prison fail2ban",
+      "enableDesc": "Génère la prison comme activée. Le fail2ban de l'hôte doit toujours inclure les fichiers générés.",
+      "maxretry": "Tentatives maximales",
+      "maxretryDesc": "Échecs dans la fenêtre avant qu'une IP soit bannie.",
+      "findtime": "Fenêtre de détection (secondes)",
+      "findtimeDesc": "Fenêtre glissante sur laquelle les échecs sont comptés.",
+      "bantime": "Durée du bannissement (secondes)",
+      "bantimeDesc": "Combien de temps une IP bannie est bloquée. Par défaut 86400 (24 heures).",
+      "bannedCount": "{{count}} IP actuellement bannies",
+      "updatedAt": "mis à jour {{time}}",
+      "noStatusFile": "pas encore de statut de l'hôte",
+      "hostNote": "OpenWA ne peut pas exécuter fail2ban lui-même. Installez fail2ban sur l'hôte, incluez les fichiers générés, puis rechargez fail2ban.",
+      "snippetCopied": "Commandes de configuration de l'hôte copiées",
+      "copySnippet": "Copier la configuration de l'hôte",
+      "docs": "Guide de configuration"
+    }
   },
   "plugins": {
     "title": "Plugins",

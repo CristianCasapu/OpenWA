@@ -748,7 +748,8 @@
     "statusLabels": {
       "connected": "Connesso",
       "disconnected": "Disconnesso",
-      "disabled": "Disabilitato"
+      "disabled": "Disabilitato",
+      "enabled": "Attivato"
     },
     "restart": {
       "idleTitle": "⚙️ Configurazione Salvata",
@@ -789,7 +790,26 @@
       "invalidFile": "Questo file non è un backup dati valido di OpenWA.",
       "importTooLarge": "Il backup supera il limite della richiesta. Aumenta BODY_SIZE_LIMIT sul server e riprova."
     },
-    "statusLoadError": "Impossibile caricare lo stato attuale dell'infrastruttura. Aggiorna per riprovare."
+    "statusLoadError": "Impossibile caricare lo stato attuale dell'infrastruttura. Aggiorna per riprovare.",
+    "fail2ban": {
+      "title": "Prevenzione intrusioni (fail2ban)",
+      "description": "Blocca gli IP che inviano ripetutamente una chiave API errata o richieste malformate. OpenWA genera il filtro e la jail di fail2ban; un servizio fail2ban sull'host deve includerli per applicare i ban.",
+      "enable": "Abilita la jail di fail2ban",
+      "enableDesc": "Genera la jail come abilitata. Il fail2ban dell'host deve comunque includere i file generati.",
+      "maxretry": "Tentativi massimi",
+      "maxretryDesc": "Errori entro la finestra prima che un IP venga bloccato.",
+      "findtime": "Finestra di rilevamento (secondi)",
+      "findtimeDesc": "Finestra mobile su cui vengono contati gli errori.",
+      "bantime": "Durata del ban (secondi)",
+      "bantimeDesc": "Per quanto tempo un IP bloccato viene scartato. Predefinito 86400 (24 ore).",
+      "bannedCount": "{{count}} IP attualmente bloccati",
+      "updatedAt": "aggiornato {{time}}",
+      "noStatusFile": "ancora nessuno stato dall'host",
+      "hostNote": "OpenWA non può eseguire fail2ban da solo. Installa fail2ban sull'host, includi i file generati, poi ricarica fail2ban.",
+      "snippetCopied": "Comandi di configurazione dell'host copiati",
+      "copySnippet": "Copia configurazione host",
+      "docs": "Guida alla configurazione"
+    }
   },
   "plugins": {
     "title": "Plugin",

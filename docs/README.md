@@ -62,6 +62,7 @@
 | 28  | [Multitenancy](./28-multitenancy.md)                             | Multi-tenant target design (draft proposal)         |
 | 29  | [Engine Capability Matrix](./29-engine-capability-matrix.md)     | Per-engine capability support, gaps, and roadmap    |
 | 30  | [Plugin Sandboxing](./30-plugin-sandboxing.md)                   | Worker isolation, capabilities, and plugin limits   |
+| 31  | [Intrusion Prevention (fail2ban)](./31-fail2ban.md)              | Ban probing IPs via a host fail2ban jail            |
 
 **Examples**
 

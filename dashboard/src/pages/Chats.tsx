@@ -39,7 +39,7 @@ import { useChannelMessages } from '../hooks/useChannelMessages';
 import { useContactStatuses } from '../hooks/useContactStatuses';
 import { useChatScrollPosition } from '../hooks/useChatScrollPosition';
 import { useCurrentEngineQuery } from '../hooks/queries';
-import { createTrailingCoalescer } from '../utils/trailingCoalescer';
+import { createTrailingCoalescer, type TrailingCoalescer } from '../utils/trailingCoalescer';
 import MessageBody from '../components/chats/MessageBody';
 import MediaLightbox, { type LightboxItem } from '../components/chats/MediaLightbox';
 import KindIcon from '../components/chats/KindIcon';
@@ -309,12 +309,21 @@ export function Chats() {
   // Collapse WS-driven sidebar refetches: every message landing in a chat the sidebar doesn't
   // know fires one, and a reconnect replay delivers a burst in one tick — each call previously
   // stacked its own concurrent, unordered getChats. One trailing call per quiet window carries
-  // the same effect (the seq guard above keeps even overlapping ones ordered).
-  const sidebarRefetchCoalescer = useMemo(
-    () => createTrailingCoalescer<string>(sessionId => void loadChats(sessionId), SIDEBAR_REFETCH_DEBOUNCE_MS),
-    [loadChats],
-  );
-  useEffect(() => () => sidebarRefetchCoalescer.cancel(), [sidebarRefetchCoalescer]);
+  // the same effect (the seq guard above keeps even overlapping ones ordered). Built inside an
+  // effect (not useMemo) so its pending timers are cancelled on unmount, and held in a ref for
+  // the WS handlers.
+  const sidebarRefetchCoalescerRef = useRef<TrailingCoalescer<string> | null>(null);
+  useEffect(() => {
+    const coalescer = createTrailingCoalescer<string>(sessionId => void loadChats(sessionId), SIDEBAR_REFETCH_DEBOUNCE_MS);
+    sidebarRefetchCoalescerRef.current = coalescer;
+    return () => {
+      coalescer.cancel();
+      sidebarRefetchCoalescerRef.current = null;
+    };
+  }, [loadChats]);
+  const requestSidebarRefetch = useCallback((sessionId: string) => {
+    sidebarRefetchCoalescerRef.current?.call(sessionId);
+  }, []);
 
   useEffect(() => {
     if (selectedSessionId) {
@@ -414,10 +423,10 @@ export function Chats() {
         return result.chats;
       });
       if (needsSidebarRefetch) {
-        sidebarRefetchCoalescer.call(selectedSessionId);
+        requestSidebarRefetch(selectedSessionId);
       }
     },
-    [selectedSessionId, activeChat, sidebarRefetchCoalescer, markChatRead, appendMessage, onMessageAppended, t],
+    [selectedSessionId, activeChat, requestSidebarRefetch, markChatRead, appendMessage, onMessageAppended, t],
   );
 
   const handleIncomingMessageAck = useCallback(
@@ -530,10 +539,10 @@ export function Chats() {
         // The chat may never have been opened, so there is no message cache from which to prove
         // whether this was its latest row. Refresh summaries instead of guessing and overwriting the
         // sidebar with the body of an older edited message.
-        sidebarRefetchCoalescer.call(selectedSessionId);
+        requestSidebarRefetch(selectedSessionId);
       }
     },
-    [selectedSessionId, queryClient, sidebarRefetchCoalescer],
+    [selectedSessionId, queryClient, requestSidebarRefetch],
   );
 
   // A contact's new story lands here instead of in the message pipeline; invalidate the statuses

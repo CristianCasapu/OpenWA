@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { writeSecretFile } from '../common/utils/secret-file';
 import { clearBlankEnv, recordOsEnvKeys, recordPinnedEnvKeys, BLANK_SHADOWED_ENV_KEYS } from './env-precedence';
+import { ensureApiKeyPepper } from './ensure-api-key-pepper';
 
 /**
  * Load configuration into process.env BEFORE any application module is imported.
@@ -97,6 +98,22 @@ STORAGE_LOCAL_PATH=./data/media
     writeSecretFile(generatedEnvPath, minimalConfig);
     console.log('[Bootstrap] Created default configuration at:', generatedEnvPath);
     dotenv.config({ path: generatedEnvPath, override: false });
+  }
+
+  // Generate a server-side API-key pepper on first boot when none is configured, so stored API-key
+  // hashes are HMAC (not precomputable SHA-256) out of the box. Runs AFTER all layers merge so a
+  // host/.env/.env.generated value wins; existing SHA-256 keys keep working and upgrade on use
+  // (see ensure-api-key-pepper.ts + hashApiKeyCandidates). Best-effort: a read-only data dir logs
+  // and stays on SHA-256 for this boot rather than crashing or creating unreproducible hashes.
+  const pepperResult = ensureApiKeyPepper(generatedEnvPath);
+  if (pepperResult.generated) {
+    console.log('[Bootstrap] Generated a new API_KEY_PEPPER (stored in data/.env.generated).');
+  } else if (pepperResult.persistError) {
+    console.warn(
+      '[Bootstrap] Could not persist a generated API_KEY_PEPPER (data dir not writable?); ' +
+        'API-key hashes stay on SHA-256 this boot. Set API_KEY_PEPPER explicitly to enable HMAC.',
+      pepperResult.persistError instanceof Error ? pepperResult.persistError.message : pepperResult.persistError,
+    );
   }
 }
 

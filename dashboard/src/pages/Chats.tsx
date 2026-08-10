@@ -52,6 +52,8 @@ import './Chats.css';
 
 // Quiet window for coalescing mark-as-read RPCs (see markReadCoalescer below).
 const MARK_READ_DEBOUNCE_MS = 750;
+// Quiet window for coalescing WS-burst-driven sidebar refetches into one getChats call.
+const SIDEBAR_REFETCH_DEBOUNCE_MS = 300;
 
 // mergeDeliveryStatus (forward-only delivery-tick merge) is shared with mergeOrAppend in utils/chatMessages
 // so the WS append path and the ack path apply the exact same rule.
@@ -248,7 +250,20 @@ export function Chats() {
   const activePhoneText =
     activePhoneDisplay ?? (resolvedPhoneQ.data ? formatPhoneForDisplay(resolvedPhoneQ.data) : null);
 
-  // 1. Fetch available connected sessions on mount
+  // Latest-refs for t/showErrorToast so the data-loading effects below do not re-fire when their
+  // identities rotate: `t` gets a new identity on every language switch (and showErrorToast
+  // follows it), so keying the session load on them re-ran it on language change — which
+  // unconditionally re-selected readySessions[0] and cascaded into clearing the active chat,
+  // channel, status contact, and any staged attachment. Translation freshness is preserved: the
+  // refs are read at call time, always after the effect that updates them has run.
+  const tRef = useRef(t);
+  const showErrorToastRef = useRef(showErrorToast);
+  useEffect(() => {
+    tRef.current = t;
+    showErrorToastRef.current = showErrorToast;
+  });
+
+  // 1. Fetch available connected sessions on mount (and only on mount — see the refs above)
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -260,32 +275,46 @@ export function Chats() {
           setSelectedSessionId(readySessions[0].id);
         }
       } catch (err) {
-        showErrorToast(t('chats.errors.loadSessions'), err instanceof Error ? err.message : undefined);
+        showErrorToastRef.current(tRef.current('chats.errors.loadSessions'), err instanceof Error ? err.message : undefined);
       } finally {
         setLoadingSessions(false);
       }
     };
     void loadSessions();
-  }, [t, showErrorToast]);
+  }, []);
 
-  // 2. Fetch chats when active session changes
-  const loadChats = useCallback(
-    async (sessionId: string) => {
-      if (!sessionId) return;
-      try {
-        setLoadingChats(true);
-        const data = await sessionApi.getChats(sessionId);
-        const sorted = [...data].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setChats(sorted);
-      } catch (err) {
-        showErrorToast(t('chats.errors.loadChats'), err instanceof Error ? err.message : undefined);
-        setChats([]);
-      } finally {
-        setLoadingChats(false);
-      }
-    },
-    [t, showErrorToast],
+  // 2. Fetch chats when active session changes. Monotonic sequence guard: a session switch or a
+  // WS-burst refetch can leave several getChats calls in flight at once, and without the guard a
+  // slow response for the PREVIOUS session (or an older burst) overwrote the current list — the
+  // same stale-response shape Sessions.tsx guards with its cancelled flag.
+  const chatsLoadSeq = useRef(0);
+  const loadChats = useCallback(async (sessionId: string) => {
+    if (!sessionId) return;
+    const seq = ++chatsLoadSeq.current;
+    try {
+      setLoadingChats(true);
+      const data = await sessionApi.getChats(sessionId);
+      if (seq !== chatsLoadSeq.current) return; // superseded by a newer load — discard, don't overwrite
+      const sorted = [...data].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      setChats(sorted);
+    } catch (err) {
+      if (seq !== chatsLoadSeq.current) return;
+      showErrorToastRef.current(tRef.current('chats.errors.loadChats'), err instanceof Error ? err.message : undefined);
+      setChats([]);
+    } finally {
+      if (seq === chatsLoadSeq.current) setLoadingChats(false);
+    }
+  }, []);
+
+  // Collapse WS-driven sidebar refetches: every message landing in a chat the sidebar doesn't
+  // know fires one, and a reconnect replay delivers a burst in one tick — each call previously
+  // stacked its own concurrent, unordered getChats. One trailing call per quiet window carries
+  // the same effect (the seq guard above keeps even overlapping ones ordered).
+  const sidebarRefetchCoalescer = useMemo(
+    () => createTrailingCoalescer<string>(sessionId => void loadChats(sessionId), SIDEBAR_REFETCH_DEBOUNCE_MS),
+    [loadChats],
   );
+  useEffect(() => () => sidebarRefetchCoalescer.cancel(), [sidebarRefetchCoalescer]);
 
   useEffect(() => {
     if (selectedSessionId) {
@@ -385,10 +414,10 @@ export function Chats() {
         return result.chats;
       });
       if (needsSidebarRefetch) {
-        void loadChats(selectedSessionId);
+        sidebarRefetchCoalescer.call(selectedSessionId);
       }
     },
-    [selectedSessionId, activeChat, loadChats, markChatRead, appendMessage, onMessageAppended, t],
+    [selectedSessionId, activeChat, sidebarRefetchCoalescer, markChatRead, appendMessage, onMessageAppended, t],
   );
 
   const handleIncomingMessageAck = useCallback(
@@ -501,10 +530,10 @@ export function Chats() {
         // The chat may never have been opened, so there is no message cache from which to prove
         // whether this was its latest row. Refresh summaries instead of guessing and overwriting the
         // sidebar with the body of an older edited message.
-        void loadChats(selectedSessionId);
+        sidebarRefetchCoalescer.call(selectedSessionId);
       }
     },
-    [selectedSessionId, queryClient, loadChats],
+    [selectedSessionId, queryClient, sidebarRefetchCoalescer],
   );
 
   // A contact's new story lands here instead of in the message pipeline; invalidate the statuses

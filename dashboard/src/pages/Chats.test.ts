@@ -346,6 +346,94 @@ test('a staged attachment survives closing and reopening the same room', async (
   assert.equal(container.querySelector('.preview-filename')?.textContent, 'contract.pdf');
 });
 
+test('switching the UI language keeps the selected session and open chat intact', async () => {
+  const { screen, fireEvent, within } = rtl;
+  resetFetchCalls();
+  const { container } = renderChats();
+  const i18n = (await import('../i18n/index.ts')).default;
+
+  await screen.findByText('Main (15551234567)');
+  fireEvent.click(await screen.findByText('Alice'));
+  await within(container.querySelector('.room-messages') as HTMLElement).findByText('hello from alice');
+  const chatsCallsBefore = countFetchCalls('GET', `/api/sessions/${SESSION.id}/chats`);
+
+  // A language switch rotates t's identity (and showErrorToast follows it). The load effects must
+  // not re-fire on that: the old deps re-ran the session load, which re-selected readySessions[0]
+  // and cascaded into closing the open room and dropping any staged attachment.
+  try {
+    await rtl.act(async () => {
+      await i18n.changeLanguage('ro');
+    });
+    assert.ok(
+      within(container.querySelector('.room-header') as HTMLElement).getByText('Alice'),
+      'the open room was closed by a language switch',
+    );
+    assert.equal(countFetchCalls('GET', '/api/sessions'), 1, 'language switch re-fetched the session list');
+    assert.equal(
+      countFetchCalls('GET', `/api/sessions/${SESSION.id}/chats`),
+      chatsCallsBefore,
+      'language switch re-fetched the chat list',
+    );
+  } finally {
+    await rtl.act(async () => {
+      await i18n.changeLanguage('en');
+    });
+  }
+});
+
+test("a slow chat-list response for the previous session cannot overwrite the new session's list", async () => {
+  const { screen, fireEvent, waitFor } = rtl;
+  resetFetchCalls();
+  const SESSION_B: Session = { ...SESSION, id: 'session-2', name: 'Backup', phone: '15559998888' };
+  const baseFetch = globalThis.fetch;
+  let releaseChatsA: (() => void) | undefined;
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const method = init?.method ?? 'GET';
+    const path = url.replace(/^https?:\/\/[^/]+/, '');
+    if (method === 'GET' && path === '/api/sessions') {
+      return Promise.resolve(jsonResponse([SESSION, SESSION_B]));
+    }
+    if (method === 'GET' && path === `/api/sessions/${SESSION.id}/chats`) {
+      // Session A's chat list hangs until the test releases it — after B's has already landed.
+      return new Promise(resolve => {
+        releaseChatsA = () => resolve(jsonResponse([CHAT, CHAT_2]));
+      });
+    }
+    if (method === 'GET' && path === `/api/sessions/${SESSION_B.id}/chats`) {
+      return Promise.resolve(jsonResponse([]));
+    }
+    if (method === 'GET' && path.startsWith(`/api/sessions/${SESSION_B.id}/contacts/profile-pictures`)) {
+      return Promise.resolve(jsonResponse({ pictures: {} }));
+    }
+    if (method === 'GET' && path === `/api/sessions/${SESSION_B.id}/status`) {
+      return Promise.resolve(jsonResponse({ statuses: [] }));
+    }
+    return baseFetch(input, init);
+  };
+
+  try {
+    const { container } = renderChats();
+    await screen.findByText('Main (15551234567)');
+    await waitFor(() => assert.ok(releaseChatsA, "session A's chat fetch never started"));
+
+    // Switch to session B while A's chat list is still in flight; B's empty list lands first.
+    fireEvent.change(container.querySelector('.session-selector') as HTMLSelectElement, {
+      target: { value: SESSION_B.id },
+    });
+    await screen.findByText('No chats');
+
+    // NOW the stale response for session A arrives. The sequence guard must discard it — without
+    // it, Alice's chat list overwrote the empty list of the session the user is actually viewing.
+    releaseChatsA!();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(screen.queryByText('Alice'), null, "session A's stale chat list overwrote session B's");
+    await screen.findByText('No chats');
+  } finally {
+    globalThis.fetch = baseFetch;
+  }
+});
+
 test('a staged attachment is dropped when a different chat is opened', async () => {
   const { screen, fireEvent, within } = rtl;
   resetFetchCalls();

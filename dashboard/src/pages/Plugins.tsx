@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localizePlugin } from '../utils/localizePlugin';
 import { configUiSafeConfig, missingRequiredConfig, sparseSessionOverride } from '../utils/pluginConfigRules';
@@ -28,6 +28,21 @@ import {
 import { pluginsApi } from '../services/api';
 import type { Plugin, CatalogPlugin, PluginConfigField } from '../services/api';
 import { injectConfigUiCsp } from '../utils/pluginFrameSecurity';
+
+function hardenConfigUiHtml(source: string): string {
+  const nonce = document.querySelector<HTMLMetaElement>('meta[name="openwa-csp-nonce"]')?.content ?? '';
+  const doc = new DOMParser().parseFromString(source, 'text/html');
+  if (nonce && nonce !== '__OPENWA_CSP_NONCE__') {
+    // Vite development has no production CSP, so there is nothing to stamp. Config UIs are
+    // required to be self-contained. Nonce only inline scripts; a plugin-supplied external
+    // `src` must still satisfy the parent's host allow-list rather than bypassing it via nonce.
+    for (const script of doc.querySelectorAll('script:not([src])')) script.setAttribute('nonce', nonce);
+  }
+  // Lock down media/connection egress for the frame's document — independent of the parent
+  // CSP, so it protects Vite dev sessions too. See utils/pluginFrameSecurity.
+  injectConfigUiCsp(doc);
+  return `<!doctype html>\n${doc.documentElement.outerHTML}`;
+}
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useTheme } from '../hooks/useTheme';
 import { usePluginsQuery, useSessionsQuery, queryKeys } from '../hooks/queries';
@@ -243,20 +258,10 @@ function PluginConfigUi({ plugin, sessionId }: { plugin: Plugin; sessionId?: str
   const [handshakeReceived, setHandshakeReceived] = useState(false);
   const [handshakeError, setHandshakeError] = useState<string | null>(null);
 
-  const hardenConfigUiHtml = (source: string): string => {
-    const nonce = document.querySelector<HTMLMetaElement>('meta[name="openwa-csp-nonce"]')?.content ?? '';
-    const doc = new DOMParser().parseFromString(source, 'text/html');
-    if (nonce && nonce !== '__OPENWA_CSP_NONCE__') {
-      // Vite development has no production CSP, so there is nothing to stamp. Config UIs are
-      // required to be self-contained. Nonce only inline scripts; a plugin-supplied external
-      // `src` must still satisfy the parent's host allow-list rather than bypassing it via nonce.
-      for (const script of doc.querySelectorAll('script:not([src])')) script.setAttribute('nonce', nonce);
-    }
-    // Lock down media/connection egress for the frame's document — independent of the parent
-    // CSP, so it protects Vite dev sessions too. See utils/pluginFrameSecurity.
-    injectConfigUiCsp(doc);
-    return `<!doctype html>\n${doc.documentElement.outerHTML}`;
-  };
+  // Memoized on the html itself: this runs a full DOMParser parse + serialize of the plugin's
+  // whole bundle, and the postMessage effect's deps (toast, t, theme, …) re-render this component
+  // often — re-hardening on every render re-parsed the bundle each time for an identical result.
+  const hardenedHtml = useMemo(() => (html === null ? null : hardenConfigUiHtml(html)), [html]);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,7 +351,7 @@ function PluginConfigUi({ plugin, sessionId }: { plugin: Plugin; sessionId?: str
         ref={iframeRef}
         className="plugin-config-ui-frame"
         sandbox="allow-scripts"
-        srcDoc={hardenConfigUiHtml(html)}
+        srcDoc={hardenedHtml ?? ''}
         title={plugin.name}
         style={{ height: plugin.configUi?.height ?? 600 }}
       />

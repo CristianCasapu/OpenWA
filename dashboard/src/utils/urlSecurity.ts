@@ -1,5 +1,15 @@
 const LOCALHOST_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
+/**
+ * Strip trailing slashes from a configured origin so path concatenation cannot double the
+ * separator. This matters beyond cosmetics: `io('https://host//events')` parses the namespace as
+ * `//events`, which never matches the gateway's `/events` namespace — a trailing slash in
+ * VITE_WS_URL silently broke every realtime feature while REST kept working.
+ */
+export function stripTrailingSlashes(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
 /** Whether a hostname is a loopback/local address where plaintext http is acceptable. */
 export function isLocalhostHost(hostname: string): boolean {
   return LOCALHOST_HOSTS.has(hostname.toLowerCase().replace(/^\[|\]$/g, ''));

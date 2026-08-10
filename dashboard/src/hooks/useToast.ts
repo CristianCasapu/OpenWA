@@ -17,7 +17,12 @@ export interface ToastContextValue {
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   success: (title: string, message?: string) => void;
-  error: (title: string, message?: string) => void;
+  /**
+   * `err` is the original thrown error, when the caller has one: the connection-loss de-dupe then
+   * classifies on the structured status/code api.ts attaches instead of substring-matching the
+   * rendered text. Optional so text-only call sites keep working.
+   */
+  error: (title: string, message?: string, err?: unknown) => void;
   warning: (title: string, message?: string) => void;
   info: (title: string, message?: string) => void;
 }

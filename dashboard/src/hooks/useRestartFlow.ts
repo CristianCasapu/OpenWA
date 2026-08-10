@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { infraApi } from '../services/api';
 import { restartPollAttempts } from '../utils/restartPoll';
 
@@ -64,25 +64,67 @@ export function useRestartFlow(): RestartFlow {
     if (restartStatus === 'idle') setShowRestartModal(false);
   };
 
-  const checkServerHealth = (stopCountdown?: () => void, estimatedTime?: number) => {
+  // Every timer this flow arms, tracked so unmount can clear them. Navigating away mid-restart
+  // previously left the recursive 1s health poll running against unmounted state for up to
+  // maxAttempts, and its success branch could fire window.location.reload() from a page the user
+  // had long left. The countdown interval was also uncloseable on the error path.
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+
+  const stopCountdown = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  };
+
+  const armTimeout = (fn: () => void, ms: number) => {
+    const timer = setTimeout(() => {
+      timersRef.current.delete(timer);
+      fn();
+    }, ms);
+    timersRef.current.add(timer);
+  };
+
+  useEffect(() => {
+    mountedRef.current = true; // re-armed on StrictMode's mount→cleanup→mount cycle
+    const timers = timersRef.current;
+    return () => {
+      mountedRef.current = false;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+      stopCountdown();
+    };
+  }, []);
+
+  const checkServerHealth = (estimatedTime?: number) => {
     let attempts = 0;
     const maxAttempts = restartPollAttempts(estimatedTime);
 
     const check = async () => {
       try {
         await infraApi.healthCheck();
-        stopCountdown?.();
+        if (!mountedRef.current) return;
+        stopCountdown();
         setRestartCountdown(0);
         setRestartStatus('success');
-        setTimeout(() => window.location.reload(), 2000);
+        armTimeout(() => window.location.reload(), 2000);
       } catch {
+        if (!mountedRef.current) return;
         attempts++;
-        if (attempts < maxAttempts) setTimeout(check, 1000);
-        else setRestartStatus('error');
+        if (attempts < maxAttempts) {
+          armTimeout(() => void check(), 1000);
+        } else {
+          // Also stop the ticking countdown — the error path previously had no way to reach the
+          // interval's clear, so it kept firing until the page unloaded.
+          stopCountdown();
+          setRestartStatus('error');
+        }
       }
     };
 
-    setTimeout(check, 3000);
+    armTimeout(() => void check(), 3000);
   };
 
   const start = async () => {
@@ -101,17 +143,11 @@ export function useRestartFlow(): RestartFlow {
     } catch {
       // Expected — server shutting down
     }
+    if (!mountedRef.current) return;
 
     setRestartStatus('waiting');
-    let intervalRef: ReturnType<typeof setInterval> | null = null;
-    const stopCountdown = () => {
-      if (intervalRef) {
-        clearInterval(intervalRef);
-        intervalRef = null;
-      }
-    };
-
-    intervalRef = setInterval(() => {
+    stopCountdown();
+    countdownIntervalRef.current = setInterval(() => {
       setRestartCountdown(prev => {
         if (prev <= 1) {
           stopCountdown();
@@ -121,7 +157,7 @@ export function useRestartFlow(): RestartFlow {
       });
     }, 1000);
 
-    checkServerHealth(stopCountdown, estimatedTime);
+    checkServerHealth(estimatedTime);
   };
 
   return {

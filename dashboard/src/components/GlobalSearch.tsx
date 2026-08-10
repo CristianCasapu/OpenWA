@@ -25,9 +25,19 @@ export function GlobalSearch({ onHit, currentSessionId }: GlobalSearchProps) {
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Monotonic guard: the debounce reduces but does not remove overlapping requests — a slow
+  // response for "a" resolving after a fast one for "abc" overwrote the newer results (and its
+  // finally cleared the spinner of a query that was still running). Only the latest run may
+  // apply its outcome.
+  const searchSeq = useRef(0);
+  // The query the CURRENT hits belong to. loadMore pages this one, not the live input value —
+  // otherwise a click while a new query's debounce is still pending appended the new query's
+  // second page onto the old query's first.
+  const hitsQueryRef = useRef('');
 
   const run = useCallback(
     async (query: string, offset: number, append: boolean) => {
+      const seq = ++searchSeq.current;
       const params = buildSearchParams(
         query,
         scopeCurrent && currentSessionId ? { sessionId: currentSessionId } : undefined,
@@ -44,9 +54,12 @@ export function GlobalSearch({ onHit, currentSessionId }: GlobalSearchProps) {
       setError(null);
       try {
         const res = await searchApi.search(params);
+        if (seq !== searchSeq.current) return; // superseded by a newer query — discard
         setHits(prev => (append ? [...prev, ...res.hits] : res.hits));
         setTotal(res.total);
+        if (!append) hitsQueryRef.current = query;
       } catch (e: unknown) {
+        if (seq !== searchSeq.current) return;
         const status = (e as { status?: number }).status;
         if (status === 501) setError(t('search.unavailable'));
         else if (status === 503) setError(t('search.error'));
@@ -54,7 +67,7 @@ export function GlobalSearch({ onHit, currentSessionId }: GlobalSearchProps) {
         setHits([]);
         setTotal(0);
       } finally {
-        setLoading(false);
+        if (seq === searchSeq.current) setLoading(false);
       }
     },
     [scopeCurrent, currentSessionId, t],
@@ -85,7 +98,7 @@ export function GlobalSearch({ onHit, currentSessionId }: GlobalSearchProps) {
     };
   }, []);
 
-  const loadMore = () => void run(q, hits.length, true);
+  const loadMore = () => void run(hitsQueryRef.current, hits.length, true);
 
   return (
     <div className="global-search">

@@ -73,11 +73,21 @@ export function useSessionPairing({ sessions, sessionsRef, reloadSessions }: Use
       if (currentSession?.status !== 'qr_ready') return;
       try {
         const qr = await sessionApi.getQR(sessionId);
-        setQrData({ sessionId, sessionName: currentSessionName.current, qrCode: qr.qrCode });
+        // Identity-preserving: most polls return the SAME code (WhatsApp rotates it every ~20s,
+        // the poll runs every 5s). A fresh object each time re-triggered the [qrData] interval
+        // effect — tearing down and re-arming the 5s clock on every poll (stretching it to
+        // 5s + RTT) and re-rendering the modal each cycle.
+        setQrData(prev =>
+          prev && prev.sessionId === sessionId && prev.qrCode === qr.qrCode
+            ? prev
+            : { sessionId, sessionName: currentSessionName.current, qrCode: qr.qrCode },
+        );
         if (qr.status === 'ready') {
           setQrData(null);
           currentSessionName.current = '';
-          reloadSessions();
+          // Best-effort refresh (the WS session feed also delivers the status change) — but a
+          // rejection must not surface as an unhandled one.
+          void reloadSessions().catch(() => undefined);
         }
       } catch {
         // Keep qrData alive so the polling interval keeps retrying until the QR
@@ -89,7 +99,7 @@ export function useSessionPairing({ sessions, sessionsRef, reloadSessions }: Use
         if (!stillInitializing) {
           setQrData(null);
           currentSessionName.current = '';
-          reloadSessions();
+          void reloadSessions().catch(() => undefined);
         }
       }
     },
@@ -100,7 +110,7 @@ export function useSessionPairing({ sessions, sessionsRef, reloadSessions }: Use
     if (qrData) {
       currentSessionName.current = qrData.sessionName;
       qrRefreshInterval.current = setInterval(() => {
-        fetchQR(qrData.sessionId);
+        void fetchQR(qrData.sessionId);
       }, 5000);
     }
     return () => {

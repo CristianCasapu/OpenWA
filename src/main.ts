@@ -78,12 +78,13 @@ async function bootstrap() {
     redisPassword: process.env.REDIS_PASSWORD,
   });
 
-  // Advisory (not enforced): without API_KEY_PEPPER, stored API-key hashes use plain SHA-256. Enabling
-  // a pepper re-hashes keys and invalidates existing ones, so we only nudge the operator (see api-key-hash.ts).
+  // A pepper is auto-generated on first boot (see ensure-api-key-pepper.ts), so this only fires when
+  // generation could not persist — e.g. a read-only data dir. Enabling a pepper is now non-breaking
+  // (validateApiKey upgrades legacy SHA-256 hashes on use), so no key re-issue is needed.
   if (isApiKeyPepperMissingInProduction(process.env.NODE_ENV, process.env.API_KEY_PEPPER)) {
     bootstrapLogger.warn(
-      'API_KEY_PEPPER is not set in production: stored API-key hashes use plain SHA-256. ' +
-        'Set API_KEY_PEPPER and re-issue keys to enable HMAC hashing.',
+      'API_KEY_PEPPER is not set in production and could not be auto-generated (data dir not writable?): ' +
+        'stored API-key hashes use plain SHA-256. Set API_KEY_PEPPER to enable HMAC hashing (existing keys upgrade on use).',
     );
   }
 

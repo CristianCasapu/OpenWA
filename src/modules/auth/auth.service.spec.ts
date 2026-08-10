@@ -100,6 +100,7 @@ describe('AuthService', () => {
       save: jest.fn(),
       remove: jest.fn(),
       increment: jest.fn(),
+      update: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -624,6 +625,67 @@ describe('AuthService', () => {
       (repository.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(service.validateApiKey('wrong-key')).rejects.toThrow(UnauthorizedException);
+    });
+
+    describe('API_KEY_PEPPER hash upgrade (non-breaking)', () => {
+      const PEPPER = 'test-pepper-value';
+      const hmacKey = (key: string) => createHmac('sha256', PEPPER).update(key).digest('hex');
+      let savedPepper: string | undefined;
+
+      beforeEach(() => {
+        savedPepper = process.env.API_KEY_PEPPER;
+        process.env.API_KEY_PEPPER = PEPPER;
+      });
+      afterEach(() => {
+        if (savedPepper === undefined) delete process.env.API_KEY_PEPPER;
+        else process.env.API_KEY_PEPPER = savedPepper;
+      });
+
+      // Serve the key only for the exact stored hash, so the candidate order (HMAC first, then
+      // legacy SHA-256) is exercised for real rather than short-circuited by a match-anything mock.
+      const serveByHash = (key: ApiKey): void => {
+        (repository.findOne as jest.Mock).mockImplementation((opts: { where: { keyHash?: string } }) =>
+          Promise.resolve(opts.where.keyHash === key.keyHash ? key : null),
+        );
+      };
+
+      it('validates a key already stored as HMAC without rewriting it', async () => {
+        const rawKey = 'peppered-key';
+        const key = createMockApiKey({ keyHash: hmacKey(rawKey) });
+        serveByHash(key);
+
+        await expect(service.validateApiKey(rawKey)).resolves.toMatchObject({ id: key.id });
+        expect(repository.update).not.toHaveBeenCalled(); // already in the current format
+      });
+
+      it('validates a legacy SHA-256 key AND upgrades its stored hash to HMAC on use', async () => {
+        const rawKey = 'legacy-key';
+        const key = createMockApiKey({ keyHash: hashKey(rawKey) }); // stored before the pepper existed
+        serveByHash(key);
+
+        const result = await service.validateApiKey(rawKey);
+
+        expect(result.id).toBe(key.id);
+        // The row is rehashed in place to the peppered form — the whole point of the non-breaking upgrade.
+        expect(repository.update).toHaveBeenCalledWith(key.id, { keyHash: hmacKey(rawKey) });
+      });
+
+      it('still authenticates the legacy key even if the in-place upgrade write fails', async () => {
+        const rawKey = 'legacy-key-2';
+        const key = createMockApiKey({ keyHash: hashKey(rawKey) });
+        serveByHash(key);
+        (repository.update as jest.Mock).mockRejectedValueOnce(new Error('db down'));
+
+        // A failed upgrade must never turn a valid key into a rejected one.
+        await expect(service.validateApiKey(rawKey)).resolves.toMatchObject({ id: key.id });
+      });
+
+      it('rejects a key that matches neither the HMAC nor the legacy hash', async () => {
+        const key = createMockApiKey({ keyHash: hmacKey('some-other-key') });
+        serveByHash(key);
+
+        await expect(service.validateApiKey('unrelated-key')).rejects.toThrow(UnauthorizedException);
+      });
     });
 
     it('should throw UnauthorizedException for revoked key', async () => {

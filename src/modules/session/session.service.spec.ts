@@ -1171,6 +1171,22 @@ describe('SessionService', () => {
       // Synchronously, on the same tick, the mark must already be set.
       expect(stopping.has('sess-uuid-1')).toBe(true);
     });
+
+    // A fence refusal must also UNDO the mark it just set: executeReconnect and isSessionRetired
+    // both read it, so a mark stranded by a 409 silently disables the session's automatic
+    // reconnect on this node — and the refused request tore nothing down that start() would fix.
+    it.each([
+      ['stop', (s: SessionService) => s.stop('sess-uuid-1')],
+      ['delete', (s: SessionService) => s.delete('sess-uuid-1')],
+    ])('%s() clears the stop mark again when the ownership fence refuses', async (_verb, call) => {
+      const ownership = withOwnership();
+      Object.assign(ownership, { isHeldByOtherNode: jest.fn().mockResolvedValue(true) });
+      const stopping = (lifecycle as unknown as { stoppingSessions: Set<string> }).stoppingSessions;
+
+      await expect(call(service)).rejects.toBeInstanceOf(ConflictException);
+
+      expect(stopping.has('sess-uuid-1')).toBe(false);
+    });
   });
 
   describe('isEngineActive', () => {

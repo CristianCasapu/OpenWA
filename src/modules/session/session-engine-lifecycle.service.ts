@@ -451,6 +451,18 @@ export class SessionEngineLifecycle {
   }
 
   /**
+   * Undo markStopping when the request that set it refuses before doing any teardown.
+   *
+   * "Cleared by the next start()" is not enough on its own: executeReconnect and isSessionRetired
+   * both read this mark, so a mark left behind by an ownership-fence 409 silently disables the
+   * session's automatic reconnect — recoverable only by a manual start() that may never come.
+   * The refusing caller knows it tore nothing down, so it is the one that must clear it.
+   */
+  clearStoppingMark(id: string): void {
+    this.stoppingSessions.delete(id);
+  }
+
+  /**
    * True while this process still has anything alive for the session: a registered engine, an
    * in-flight start(), or reconnect state whose armed/executing attempt will re-register one.
    * The ownership heartbeat consults this so a claim that no longer covers an engine stops being

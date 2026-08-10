@@ -254,6 +254,9 @@ services:
       # Security
       - API_MASTER_KEY=${API_MASTER_KEY:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Cloudflare exposure mode (off|tunnel|proxy). When tunnel/proxy, CF-Connecting-IP from a
+      # TRUSTED_PROXIES peer is honored as the real client IP. Unset preserves the default (off).
+      - CF_MODE=${CF_MODE:-}
       # Forward the plain-HTTP dashboard CSP override; unset preserves the application default.
       - CSP_UPGRADE_INSECURE_REQUESTS=${CSP_UPGRADE_INSECURE_REQUESTS:-}
       # Docker socket proxy (openwa-api never touches /var/run/docker.sock directly)

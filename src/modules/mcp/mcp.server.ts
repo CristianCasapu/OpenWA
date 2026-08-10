@@ -13,7 +13,7 @@ import type { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
 import { handleToolError, jsonToolResult, smartToolResult } from './tool-result';
 import type { KeyRateLimiter } from './mcp-rate-limit';
-import { resolveClientIp } from '../../common/utils/ip';
+import { resolveClientIp, cfConnectingIpTrusted } from '../../common/utils/ip';
 
 const logger = new Logger('McpServer');
 
@@ -76,7 +76,9 @@ function readTrustedProxies(): string[] {
 /** Resolve the trusted-proxy-aware client IP + HTTP method/path for an audit record. */
 function resolveReqContext(req: Request): McpRequestContext {
   return {
-    ipAddress: resolveClientIp(req, readTrustedProxies()),
+    ipAddress: resolveClientIp(req, readTrustedProxies(), {
+      trustCfConnectingIp: cfConnectingIpTrusted(process.env.CF_MODE),
+    }),
     method: req.method,
     path: req.path,
   };
@@ -170,7 +172,9 @@ export interface MountMcpServerOptions {
  */
 export function createIpThrottle(ipRateLimiter: KeyRateLimiter): RequestHandler {
   return (req, res, next) => {
-    const ip = resolveClientIp(req, readTrustedProxies());
+    const ip = resolveClientIp(req, readTrustedProxies(), {
+      trustCfConnectingIp: cfConnectingIpTrusted(process.env.CF_MODE),
+    });
     try {
       ipRateLimiter.check(ip);
       next();

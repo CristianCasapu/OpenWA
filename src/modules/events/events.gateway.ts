@@ -14,7 +14,11 @@ import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
 import { resolveCorsPolicy } from '../../config/bootstrap-security';
-import { resolveClientIp as resolveRequestClientIp, type RequestLike } from '../../common/utils/ip';
+import {
+  resolveClientIp as resolveRequestClientIp,
+  cfConnectingIpTrusted,
+  type RequestLike,
+} from '../../common/utils/ip';
 import type { ApiKey } from '../auth/entities/api-key.entity';
 import {
   readWsRateLimitConfig,
@@ -177,7 +181,9 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       socket: { remoteAddress: handshake.address },
       headers: handshake.headers ?? {},
     };
-    return resolveRequestClientIp(req, readTrustedProxies());
+    return resolveRequestClientIp(req, readTrustedProxies(), {
+      trustCfConnectingIp: cfConnectingIpTrusted(process.env.CF_MODE),
+    });
   }
 
   private trackSocket(keyId: string, client: Socket): void {

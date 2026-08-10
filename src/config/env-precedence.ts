@@ -118,6 +118,9 @@ export const BLANK_SHADOWED_ENV_KEYS: string[] = [
   'BODY_SIZE_LIMIT',
   'API_MASTER_KEY',
   'TRUSTED_PROXIES',
+  // Cloudflare exposure mode. Blank-forwarded by compose so the exposure config the dashboard writes
+  // to data/.env.generated (P5/P6) is not shadowed, while a real host value still pins.
+  'CF_MODE',
   'CSP_UPGRADE_INSECURE_REQUESTS',
   // whatsapp-web.js launch knobs: the WhatsApp Web version pin, its remote HTML template, and the
   // first-boot init wait raised for slow hosts.

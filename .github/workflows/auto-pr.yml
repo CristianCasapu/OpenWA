@@ -96,6 +96,12 @@ jobs:
             fi
 
             echo "· $branch: opening draft PR"
-            gh pr create --repo "$REPO" --base main --head "$branch" --draft --fill \
+            # No checkout in this job, so --fill is unusable (it reads the local git history and
+            # dies with "not a git repository"). Take the title from the branch's head commit via
+            # the API instead, falling back to the branch name.
+            title="$(gh api "repos/$REPO/commits/$branch" -q '.commit.message' 2>/dev/null | head -n1)"
+            gh pr create --repo "$REPO" --base main --head "$branch" --draft \
+              --title "${title:-$branch}" \
+              --body "Draft PR deschis automat pentru \`$branch\` (auto-pr.yml)." \
               || echo "  ! failed to open PR for $branch (continuing)"
           done

@@ -47,8 +47,7 @@ const FAIL2BAN_INCLUDE_SNIPPET = [
   'ln -sf <DATA>/fail2ban/jail.d/openwa.local  /etc/fail2ban/jail.d/openwa.local',
   'systemctl reload fail2ban',
 ].join('\n');
-const FAIL2BAN_DOCS_URL =
-  'https://github.com/CristianCasapu/OpenWA/blob/main/docs/31-fail2ban.md';
+const FAIL2BAN_DOCS_URL = 'https://github.com/CristianCasapu/OpenWA/blob/main/docs/31-fail2ban.md';
 
 export function Infrastructure() {
   const { t } = useTranslation();
@@ -771,9 +770,7 @@ export function Infrastructure() {
               <ShieldAlert size={20} />
               <h2>{t('infrastructure.fail2ban.title')}</h2>
             </div>
-            <span
-              className={`status-indicator ${configForm.fail2banConfig.enabled ? 'connected' : 'disconnected'}`}
-            >
+            <span className={`status-indicator ${configForm.fail2banConfig.enabled ? 'connected' : 'disconnected'}`}>
               ●{' '}
               {configForm.fail2banConfig.enabled
                 ? t('infrastructure.statusLabels.enabled')

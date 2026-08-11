@@ -277,7 +277,10 @@ export function Chats() {
           setSelectedSessionId(readySessions[0].id);
         }
       } catch (err) {
-        showErrorToastRef.current(tRef.current('chats.errors.loadSessions'), err instanceof Error ? err.message : undefined);
+        showErrorToastRef.current(
+          tRef.current('chats.errors.loadSessions'),
+          err instanceof Error ? err.message : undefined,
+        );
       } finally {
         setLoadingSessions(false);
       }
@@ -316,7 +319,10 @@ export function Chats() {
   // the WS handlers.
   const sidebarRefetchCoalescerRef = useRef<TrailingCoalescer<string> | null>(null);
   useEffect(() => {
-    const coalescer = createTrailingCoalescer<string>(sessionId => void loadChats(sessionId), SIDEBAR_REFETCH_DEBOUNCE_MS);
+    const coalescer = createTrailingCoalescer<string>(
+      sessionId => void loadChats(sessionId),
+      SIDEBAR_REFETCH_DEBOUNCE_MS,
+    );
     sidebarRefetchCoalescerRef.current = coalescer;
     return () => {
       coalescer.cancel();

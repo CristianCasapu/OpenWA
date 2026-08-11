@@ -17,6 +17,7 @@
                 "api_key_revoked",
                 "api_key_deleted",
                 "api_key_auth_failed",
+                "api_key_lockout",
                 "mfa_enrolled",
                 "mfa_disabled",
                 "mfa_verified",

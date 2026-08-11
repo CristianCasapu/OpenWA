@@ -1,0 +1,90 @@
+name: Auto-PR for working branches
+
+# Opens a draft pull request to `main` for every working branch (anything except main/develop) that
+# doesn't already have one, so a pushed branch never sits without a PR. Idempotent: a branch that
+# already has an open PR, or that is not ahead of main, is skipped — repeated pushes and sweeps never
+# create duplicates.
+#
+# Two trigger surfaces:
+#   - push: opens the PR the moment a working branch is pushed. Note a `push` event runs the workflow
+#     version present in the pushed commit, so a branch whose history predates this file won't
+#     self-trigger — which is what the sweep below is for.
+#   - schedule + workflow_dispatch: a periodic/manual sweep over ALL working branches, catching those
+#     older branches and any push that raced the file's introduction.
+#
+# Why a GitHub App token instead of the default GITHUB_TOKEN: a PR opened by GITHUB_TOKEN does NOT
+# trigger other workflows (GitHub's recursion guard), so `ci.yml` would never run on the auto-PR. An
+# App-installation token does trigger them. Configure a GitHub App with repository permissions
+# Contents: Read + Pull requests: Read & write, install it on this repo, and set two repository
+# secrets: APP_ID and APP_PRIVATE_KEY. (To skip the App, drop the token step and set
+# `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` below — simpler, but CI won't run on the auto-PRs.)
+
+on:
+  push:
+    branches-ignore: [main, develop]
+  schedule:
+    # Every 30 min: the sweep that reaches branches the push trigger can't (see header).
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write # only used by a GITHUB_TOKEN fallback; the App token carries its own scopes
+
+concurrency:
+  group: auto-pr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  open-pr:
+    name: Open draft PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Open a draft PR for each working branch that lacks one
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PUSHED_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -uo pipefail
+
+          # Candidate branches. On push, only the branch just pushed. On a scheduled/manual sweep,
+          # every branch except main/develop and dependabot/* (Dependabot opens its own PRs — never
+          # duplicate them).
+          if [ "$EVENT" = "push" ]; then
+            branches="$PUSHED_BRANCH"
+          else
+            branches="$(gh api "repos/$REPO/branches" --paginate -q '.[].name' \
+              | grep -vxE 'main|develop' \
+              | grep -vE '^dependabot/' || true)"
+          fi
+
+          for branch in $branches; do
+            # Skip a branch with nothing to propose (not ahead of main). `main...branch` counts commits
+            # on the branch since the merge base.
+            ahead="$(gh api "repos/$REPO/compare/main...$branch" -q '.ahead_by' 2>/dev/null || echo 0)"
+            if [ "${ahead:-0}" -eq 0 ]; then
+              echo "· $branch: not ahead of main — skipping"
+              continue
+            fi
+
+            # Skip a branch that already has an open PR — this is what makes repeated pushes/sweeps
+            # idempotent.
+            existing="$(gh pr list --repo "$REPO" --head "$branch" --state open --json number -q 'length' 2>/dev/null || echo 0)"
+            if [ "${existing:-0}" -gt 0 ]; then
+              echo "· $branch: open PR already exists — skipping"
+              continue
+            fi
+
+            echo "· $branch: opening draft PR"
+            gh pr create --repo "$REPO" --base main --head "$branch" --draft --fill \
+              || echo "  ! failed to open PR for $branch (continuing)"
+          done

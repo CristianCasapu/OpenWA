@@ -118,6 +118,9 @@ export const BLANK_SHADOWED_ENV_KEYS: string[] = [
   'BODY_SIZE_LIMIT',
   'API_MASTER_KEY',
   'TRUSTED_PROXIES',
+  // Cloudflare exposure mode. Blank-forwarded by compose so the exposure config the dashboard writes
+  // to data/.env.generated (P5/P6) is not shadowed, while a real host value still pins.
+  'CF_MODE',
   // Brute-force lockout knobs, blank-forwarded like the rate-limit values so a host value can take
   // precedence without an empty forward masking a lower-priority .env / data/.env.generated value.
   'AUTH_LOCKOUT_ENABLED',

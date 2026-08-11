@@ -6,7 +6,7 @@ import { ApiKeyRole } from '../../modules/auth/entities/api-key.entity';
 import { AuditService } from '../../modules/audit/audit.service';
 import { AuditAction } from '../../modules/audit/entities/audit-log.entity';
 import { KeyRateLimiter, readIpRateLimitConfig } from '../../modules/mcp/mcp-rate-limit';
-import { resolveClientIp } from '../utils/ip';
+import { resolveClientIp, cfConnectingIpTrusted } from '../utils/ip';
 
 /**
  * Protects the Bull Board UI (/admin/queues).
@@ -133,6 +133,7 @@ export class BullBoardAuthMiddleware implements NestMiddleware {
     // Mirror the ApiKeyGuard's IP model so allowedIps is enforced consistently for the queue UI:
     // X-Forwarded-For is honored only behind a configured trusted proxy.
     const trustedProxies = this.configService.get<string[]>('security.trustedProxies') ?? [];
-    return resolveClientIp(req, trustedProxies);
+    const cfMode = this.configService.get<string>('security.cfMode');
+    return resolveClientIp(req, trustedProxies, { trustCfConnectingIp: cfConnectingIpTrusted(cfMode) });
   }
 }

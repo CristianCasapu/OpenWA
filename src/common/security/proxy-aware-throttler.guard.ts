@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { resolveClientIp, RequestLike } from '../utils/ip';
+import { resolveClientIp, cfConnectingIpTrusted, RequestLike } from '../utils/ip';
 
 /**
  * Rate-limit bucket keyed on the resolved client IP.
@@ -20,6 +20,10 @@ export class ProxyAwareThrottlerGuard extends ThrottlerGuard {
       .split(',')
       .map(proxy => proxy.trim())
       .filter(Boolean);
-    return Promise.resolve(resolveClientIp(req as unknown as RequestLike, trustedProxies));
+    return Promise.resolve(
+      resolveClientIp(req as unknown as RequestLike, trustedProxies, {
+        trustCfConnectingIp: cfConnectingIpTrusted(process.env.CF_MODE),
+      }),
+    );
   }
 }

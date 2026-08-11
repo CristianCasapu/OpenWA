@@ -114,6 +114,7 @@ services:
       # raise this for large documents (e.g. BODY_SIZE_LIMIT=50mb). Blank keeps the app default of 25mb.
       - BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      - CF_MODE=${CF_MODE:-}
       - AUTH_LOCKOUT_ENABLED=${AUTH_LOCKOUT_ENABLED:-}
       - AUTH_LOCKOUT_THRESHOLD=${AUTH_LOCKOUT_THRESHOLD:-}
       - AUTH_LOCKOUT_WINDOW_MS=${AUTH_LOCKOUT_WINDOW_MS:-}

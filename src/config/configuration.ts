@@ -3,6 +3,7 @@ import { computeFeatureFlags } from './feature-flags';
 import { computeSendPacingConfig } from '../modules/message/send-pacing.config';
 import { resolveInflightBodyBudgetBytes } from './inflight-body-budget';
 import { readWsRateLimitConfig } from '../modules/events/ws-rate-limit';
+import { normalizeCfMode } from '../common/utils/ip';
 
 /**
  * Root of the host's persistent state. Relative on purpose: the image sets WORKDIR /app and mounts
@@ -296,6 +297,12 @@ export default () => ({
       .split(',')
       .map(proxy => proxy.trim())
       .filter(Boolean),
+    // Cloudflare exposure mode. `off` (default) = no Cloudflare header handling, identical to a
+    // bare reverse-proxy deployment. `tunnel`/`proxy` = the app sits behind Cloudflare (a
+    // cloudflared tunnel or the CF proxy fronted by a local terminator), so CF-Connecting-IP from a
+    // TRUSTED_PROXIES peer is honored as the real client IP. It only ever ENABLES reading that
+    // header once the peer is trusted; it never widens who is trusted.
+    cfMode: normalizeCfMode(process.env.CF_MODE),
   },
 
   // Intrusion prevention (fail2ban). The app cannot run fail2ban or touch the host firewall (see

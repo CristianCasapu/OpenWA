@@ -254,6 +254,9 @@ services:
       # Security
       - API_MASTER_KEY=${API_MASTER_KEY:-}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
+      # Cloudflare exposure mode (off|tunnel|proxy). When tunnel/proxy, CF-Connecting-IP from a
+      # TRUSTED_PROXIES peer is honored as the real client IP. Unset preserves the default (off).
+      - CF_MODE=${CF_MODE:-}
       # Brute-force lockout on API-key auth (per client IP). Enabled by default in the app; these
       # forward host overrides for the threshold/window/block. Unset preserves the app defaults.
       - AUTH_LOCKOUT_ENABLED=${AUTH_LOCKOUT_ENABLED:-}

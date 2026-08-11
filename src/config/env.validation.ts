@@ -70,6 +70,9 @@ export function validateEnv(config: EnvConfig): EnvConfig {
   };
   checkEnum('ENGINE_TYPE', ['whatsapp-web.js', 'baileys']);
   checkEnum('STORAGE_TYPE', ['local', 's3']);
+  // Cloudflare exposure mode. An unknown value would silently normalize to 'off' (no CF header
+  // trust), so validate it at boot rather than let a typo quietly disable the intended exposure.
+  checkEnum('CF_MODE', ['off', 'tunnel', 'proxy']);
 
   if (dbType === 'postgres') {
     for (const key of ['DATABASE_HOST', 'DATABASE_USERNAME', 'DATABASE_PASSWORD']) {

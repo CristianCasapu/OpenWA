@@ -11,7 +11,7 @@ import {
   UNSCOPED_KEY,
   MFA_EXEMPT_KEY,
 } from '../decorators/auth.decorators';
-import { resolveClientIp } from '../../../common/utils/ip';
+import { resolveClientIp, cfConnectingIpTrusted } from '../../../common/utils/ip';
 import { setRequestActor } from '../../../common/services/request-context';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../audit/entities/audit-log.entity';
@@ -169,6 +169,7 @@ export class ApiKeyGuard implements CanActivate {
    */
   private getClientIp(request: Request): string {
     const trustedProxies = this.configService.get<string[]>('security.trustedProxies') ?? [];
-    return resolveClientIp(request, trustedProxies);
+    const cfMode = this.configService.get<string>('security.cfMode');
+    return resolveClientIp(request, trustedProxies, { trustCfConnectingIp: cfConnectingIpTrusted(cfMode) });
   }
 }

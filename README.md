@@ -2,47 +2,65 @@
   <img src="docs/logo/openwa_logo.webp" alt="OpenWA Logo" width="200"/>
 </p>
 
-<h1 align="center">OpenWA</h1>
+<h1 align="center">OpenWA <sub>· hardened fork</sub></h1>
 <p align="center">
-  <strong>Open Source WhatsApp API Gateway</strong>
+  <strong>Self-hosted WhatsApp API Gateway — security-hardened and maintained by Cristian Casapu</strong>
 </p>
 
 <p align="center">
-  <a href="#-features">Features</a> •
+  <a href="#-about-this-fork">About this fork</a> •
+  <a href="#-what-this-fork-adds">What this fork adds</a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-documentation">Docs</a> •
   <a href="#-api-examples">API</a> •
-  <a href="#-contributing">Contributing</a>
+  <a href="#-credits--license">Credits &amp; License</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/rmyndharis/OpenWA/actions/workflows/ci.yml"><img src="https://github.com/rmyndharis/OpenWA/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"/></a>
-  <img src="https://img.shields.io/github/package-json/v/rmyndharis/OpenWA?label=version&color=blue" alt="Version"/>
+  <a href="https://github.com/CristianCasapu/OpenWA/actions/workflows/ci.yml"><img src="https://github.com/CristianCasapu/OpenWA/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"/></a>
+  <img src="https://img.shields.io/github/package-json/v/CristianCasapu/OpenWA?label=version&color=blue" alt="Version"/>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"/>
   <img src="https://img.shields.io/badge/node-22_LTS-brightgreen.svg" alt="Node"/>
-  <img src="https://img.shields.io/github/package-json/dependency-version/rmyndharis/OpenWA/@nestjs/core?label=NestJS&color=red" alt="NestJS"/>
+  <img src="https://img.shields.io/github/package-json/dependency-version/CristianCasapu/OpenWA/@nestjs/core?label=NestJS&color=red" alt="NestJS"/>
   <img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"/>
-  <img src="https://img.shields.io/github/package-json/dependency-version/rmyndharis/OpenWA/dev/typescript?label=TypeScript&color=3178C6" alt="TypeScript"/>
+  <img src="https://img.shields.io/github/package-json/dependency-version/CristianCasapu/OpenWA/dev/typescript?label=TypeScript&color=3178C6" alt="TypeScript"/>
 </p>
 
 ---
 
-## ✨ Why OpenWA?
+## 🔱 About this fork
 
-**OpenWA** is a free, open-source WhatsApp API Gateway designed for developers who need full control over their messaging infrastructure—without vendor lock-in or hidden paywalls.
+This repository is a **fork of [`rmyndharis/OpenWA`](https://github.com/rmyndharis/OpenWA)** (© Yudhi Armyndharis and the OpenWA Contributors), maintained by **[Cristian Casapu](https://github.com/CristianCasapu)** under the same MIT license.
 
-Built on a **pluggable architecture**, OpenWA lets you select database engines (SQLite/PostgreSQL), backup/migration storage backends (Local/S3), and cache layers (disabled/Redis) through configuration rather than application-code changes. Message media itself is returned inline to API and webhook consumers; it is not automatically persisted to the storage backend.
+The upstream project is a large, AI-assisted codebase. This fork exists to take that starting point and make it **safe to actually self-host**: it adds a coherent security layer, verification gates, and CI automation on top of the original feature set. Treat it as a **work in progress** — a hardening effort rather than a finished, guaranteed-stable product. If you need the canonical upstream, use the [source repository](https://github.com/rmyndharis/OpenWA); if you want the hardening work described below, you're in the right place.
 
-|                               |                                                                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔓 **100% Open Source**       | No licensing fees, no feature locks, full source code access                                                                             |
-| 🏗️ **Pluggable Architecture** | Swap adapters for database, storage, and cache via config                                                                                |
-| 🖥️ **Full Dashboard**         | Modern React UI for session, webhook, and API key management                                                                             |
-| 🔹 **Multi-Session Ready**    | Run multiple WhatsApp sessions concurrently on one instance                                                                              |
-| 🐳 **Docker Native**          | Production-ready with zero configuration                                                                                                 |
-| 🧩 **Official Plugins**       | Chatwoot, Typebot & more as sandboxed plugins on the Integration Fabric — [OpenWA-plugins](https://github.com/rmyndharis/OpenWA-plugins) |
-| 🔗 **n8n Integration**        | Community nodes for workflow automation                                                                                                  |
-| 🧩 **Community Adapters**     | Third-party integrations (e.g. ioBroker) — see [docs](./docs/23-community-integrations.md)                                               |
+OpenWA itself is a free, open-source WhatsApp API Gateway for developers who want full control over their messaging infrastructure — no vendor lock-in, no hidden paywalls. It is built on a **pluggable architecture**: database engine (SQLite/PostgreSQL), backup/migration storage (Local/S3), and cache layer (disabled/Redis) are all chosen through configuration rather than code changes. Message media is returned inline to API and webhook consumers; it is not automatically persisted to the storage backend.
+
+|                               |                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 🔐 **Security-first fork**    | Peppered key hashing, brute-force lockout, fail2ban, dashboard 2FA — see [below](#-what-this-fork-adds) |
+| 🔓 **100% Open Source**       | MIT-licensed, no feature locks, full source access                                                      |
+| 🏗️ **Pluggable Architecture** | Swap adapters for database, storage, and cache via config                                               |
+| 🖥️ **Full Dashboard**         | Modern React UI for session, webhook, and API-key management                                            |
+| 🔹 **Multi-Session Ready**    | Run multiple WhatsApp sessions concurrently on one instance                                             |
+| 🐳 **Docker Native**          | Production-ready with minimal configuration                                                             |
+
+---
+
+## 🛡️ What this fork adds
+
+The changes below are the reason this fork exists. Each landed as a reviewed, gated change on top of upstream:
+
+| Area                           | Hardening added in this fork                                                                                                                                                                                                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **API-key hashing**            | Keys are stored as **HMAC hashes with a server-side pepper** (`API_KEY_PEPPER`), so a leaked database alone cannot be used to recover or replay keys.                                                                                                                        |
+| **Brute-force lockout**        | Per-client-IP **auth lockout** (`AUTH_LOCKOUT_*`) rejects a burst of unknown keys with HTTP 429 for a cooldown window; a successful auth clears the counter.                                                                                                                 |
+| **fail2ban integration**       | A structured **security event log** (`wrong_api_key` / `invalid_request`) plus **auto-generated fail2ban filter + jail config**, managed from the dashboard, so the host firewall can drop repeat offenders.                                                                 |
+| **Dashboard 2FA (TOTP)**       | **Google Authenticator / TOTP** for admin keys. An enrolled key becomes interactive-only: it is refused as a plain bearer credential without a post-TOTP dashboard session token, so a stolen key can't be replayed headless. Includes a host-side `mfa:reset` recovery CLI. |
+| **Cloudflare-aware client IP** | `CF_MODE` (`off`/`tunnel`/`proxy`) honors `CF-Connecting-IP` **only from a trusted proxy peer**, so rate-limiting, IP allow-lists, and audit key on the real visitor IP behind Cloudflare instead of the edge.                                                               |
+| **CI automation**              | An **auto-PR workflow** opens a draft pull request for every working branch, and the existing CI (lint, full-program type-check, format, OpenAPI snapshot, tests) gates changes.                                                                                             |
+
+See [`SECURITY.md`](./SECURITY.md), [`docs/31-fail2ban.md`](./docs/31-fail2ban.md), and [`docs/32-2fa.md`](./docs/32-2fa.md) for details.
 
 ---
 
@@ -74,24 +92,17 @@ These are practical guardrails, not guarantees — but they materially reduce th
 5. **Keep a fallback.** For anything auth-critical or revenue-critical, keep an SMS / email / official-Cloud-API path. Do not bet a login flow solely on an unofficial client.
 6. **Mind the hosting IP.** Cheap datacenter IPs are flagged more aggressively than residential ones. A residential proxy (supported per-session via the proxy settings) can help; it is not a license to spam.
 
-### Known platform behaviour (not bugs)
-
-A few things that look like bugs but are actually server-side WhatsApp policy, not OpenWA defects — we track them separately so we can distinguish them from real bugs:
-
-- **First message to a brand-new contact sometimes never arrives.** The API returns success because the message leaves OpenWA, but WhatsApp's server-side reach-out / trust policy drops it at delivery. This is independent of OpenWA. We track it in [#830](https://github.com/rmyndharis/OpenWA/issues/830).
-- **Accounts that get restricted cannot be "unrestricted" by us.** If WhatsApp disables a number, you need to appeal through their channels — OpenWA has no lever to pull.
-
 ### Compliance
 
 For any deployment where ethical, legal, or regulatory compliance matters (healthcare, finance, large-scale commercial messaging, anything touching end users in the EU/EEA under DMA/GDPR framings), treat OpenWA as **not approved** and use Meta's [official WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api). OpenWA is an excellent fit for personal projects, internal tooling, automation hobbyists, and learning — it is not a drop-in replacement for the official API in regulated environments.
 
-📖 For the deeper, maintainer-side risk analysis (protocol-change exposure, dependency strategy, security posture), see [Risk Management (`docs/16`)](./docs/16-risk-management.md).
+📖 For the deeper, maintainer-side risk analysis, see [Risk Management (`docs/16`)](./docs/16-risk-management.md).
 
 ---
 
 ## 🎯 Features
 
-### Core Features
+### Core
 
 | Feature       | Status | Description                                                                  |
 | ------------- | ------ | ---------------------------------------------------------------------------- |
@@ -99,7 +110,8 @@ For any deployment where ethical, legal, or regulatory compliance matters (healt
 | Multi-Session | ✅     | Manage multiple WhatsApp accounts                                            |
 | Webhooks      | ✅     | Real-time events with HMAC signature and optional smart pre-dispatch filters |
 | Web Dashboard | ✅     | Visual management interface                                                  |
-| API Key Auth  | ✅     | Secure API authentication                                                    |
+| API Key Auth  | ✅     | Peppered API-key authentication (this fork)                                  |
+| 2FA (TOTP)    | ✅     | Google Authenticator for admin keys (this fork)                              |
 | Swagger Docs  | ✅     | Interactive API documentation                                                |
 
 ### Messaging
@@ -115,17 +127,18 @@ For any deployment where ethical, legal, or regulatory compliance matters (healt
 
 ### Advanced
 
-| Feature             | Status | Description                                                                                                                                                                  |
-| ------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Groups API          | ✅     | Create, manage, join (invite code), and configure groups                                                                                                                     |
-| Profile Management  | ✅     | Set own display name, about text, and profile picture                                                                                                                        |
-| Call Handling       | ✅     | `call.received` events, reject calls, per-session auto-reject                                                                                                                |
-| Channels/Newsletter | ✅     | WhatsApp Channels support                                                                                                                                                    |
-| Labels Management   | ✅     | Organize chats with labels                                                                                                                                                   |
-| Proxy Support       | ✅     | Per-session proxy configuration                                                                                                                                              |
-| Rate Limiting       | ✅     | Configurable request limits                                                                                                                                                  |
-| CIDR Whitelisting   | ✅     | IP-based access control                                                                                                                                                      |
-| Audit Logging       | ✅     | Audit trail for API-key, session, integration-instance, and infra admin operations (message sends and webhook deliveries are tracked in their own tables, not the audit log) |
+| Feature             | Status | Description                                                                        |
+| ------------------- | ------ | ---------------------------------------------------------------------------------- |
+| Groups API          | ✅     | Create, manage, join (invite code), and configure groups                           |
+| Profile Management  | ✅     | Set own display name, about text, and profile picture                              |
+| Call Handling       | ✅     | `call.received` events, reject calls, per-session auto-reject                      |
+| Channels/Newsletter | ✅     | WhatsApp Channels support                                                          |
+| Labels Management   | ✅     | Organize chats with labels                                                         |
+| Proxy Support       | ✅     | Per-session proxy configuration                                                    |
+| Rate Limiting       | ✅     | Configurable request limits                                                        |
+| Brute-force lockout | ✅     | Per-IP auth lockout + fail2ban integration (this fork)                             |
+| CIDR Whitelisting   | ✅     | IP-based access control (Cloudflare-aware in this fork)                            |
+| Audit Logging       | ✅     | Audit trail for API-key, session, integration-instance, and infra admin operations |
 
 ### Infrastructure
 
@@ -146,8 +159,8 @@ For any deployment where ethical, legal, or regulatory compliance matters (healt
 ### Option A: Docker (Recommended)
 
 ```bash
-# Clone and start
-git clone https://github.com/rmyndharis/OpenWA.git
+# Clone this fork and start
+git clone https://github.com/CristianCasapu/OpenWA.git
 cd OpenWA
 docker compose -f docker-compose.dev.yml up -d
 
@@ -171,8 +184,8 @@ docker compose -f docker-compose.dev.yml up -d
 ### Option B: Local Development
 
 ```bash
-# Clone repository
-git clone https://github.com/rmyndharis/OpenWA.git
+# Clone this fork
+git clone https://github.com/CristianCasapu/OpenWA.git
 cd OpenWA
 
 # Install the locked dependencies (includes dashboard)
@@ -194,6 +207,8 @@ disable that policy globally.
 ---
 
 ## 🔒 Security Architecture
+
+Beyond the fork-specific hardening [listed above](#-what-this-fork-adds), the base stack ships two structural protections worth calling out.
 
 ### Docker Socket Proxy
 
@@ -254,11 +269,6 @@ docker compose --profile full up -d
 >
 > - Development (`docker-compose.dev.yml`): SQLite, local storage, API serves the bundled dashboard
 > - Production (`docker-compose.yml`): Configurable database, profiles for optional services
->
-> Official GHCR images are published as multi-arch manifests for:
->
-> - `linux/amd64`
-> - `linux/arm64`
 
 ## 🔌 Ports
 
@@ -327,7 +337,7 @@ curl -X POST http://localhost:2785/api/sessions/{sessionId}/webhooks \
 
 OpenWA can expose a **curated set of tools over the [Model Context Protocol](https://modelcontextprotocol.io)** so AI agents (Claude, Cursor, …) can drive WhatsApp. It is **off by default** and **additive** — every REST route keeps working unchanged.
 
-Set `MCP_ENABLED=true` to mount a stateless Streamable-HTTP transport at **`POST /mcp`** on the existing server (same port, no extra process). It exposes 51 curated tools (sessions, messaging, contacts, basic group ops, webhook reads, labels, automation-rule reads) — a focused surface rather than the full API, so agents aren't overwhelmed and destructive operations stay off the agent path.
+Set `MCP_ENABLED=true` to mount a stateless Streamable-HTTP transport at **`POST /mcp`** on the existing server (same port, no extra process). It exposes a focused set of curated tools (sessions, messaging, contacts, basic group ops, webhook reads, labels, automation-rule reads) rather than the full API, so agents aren't overwhelmed and destructive operations stay off the agent path.
 
 ```bash
 MCP_ENABLED=true npm run start:prod   # or set MCP_ENABLED in your .env / compose
@@ -354,9 +364,8 @@ The key can be passed as `Authorization: Bearer …` or `X-API-Key: …`. Every 
 - **Mint a dedicated, least-privilege key** for the agent — a non-admin, **session-scoped** key (`OPERATOR` role at most). The plaintext key is shown only once on creation; to rotate, create a new key and delete the old one.
 - The key **must not** carry an IP allow-list (`allowedIps`) — there is no genuine client IP over MCP, so such a key is rejected.
 - Set **`MCP_READONLY=true`** to mount only the read tools (no sends/writes).
-- Set **`MCP_RATE_LIMIT_MAX`** (default `60`) to limit tool calls per API key per window.
-- Set **`MCP_RATE_LIMIT_WINDOW_MS`** (default `60000`) to control the sliding window size in milliseconds.
-- **Do not expose `/mcp` to the public internet** without a fronting auth proxy. For a self-hosted, locally-reached deployment the static API key is appropriate; public exposure should use OAuth 2.1 (not yet built).
+- Set **`MCP_RATE_LIMIT_MAX`** / **`MCP_RATE_LIMIT_WINDOW_MS`** to bound tool calls per API key per window.
+- **Do not expose `/mcp` to the public internet** without a fronting auth proxy.
 
 ---
 
@@ -376,86 +385,55 @@ The key can be passed as `Authorization: Bearer …` or `X-API-Key: …`. Every 
 
 ---
 
-## 📁 Project Structure
-
-```
-openwa/
-├── src/
-│   ├── main.ts                 # Application entry point
-│   ├── app.module.ts           # Root module
-│   ├── config/                 # Configuration
-│   ├── common/                 # Shared utilities
-│   │   ├── cache/              # Redis caching
-│   │   └── storage/            # File storage (Local/S3)
-│   ├── core/                   # Core systems
-│   │   ├── hooks/              # Plugin hooks
-│   │   └── plugins/            # Plugin system
-│   ├── engine/                 # WhatsApp engine abstraction
-│   └── modules/
-│       ├── session/            # Session management
-│       ├── message/            # Message handling
-│       ├── webhook/            # Webhook management
-│       ├── group/              # Groups API
-│       ├── contact/            # Contacts API
-│       ├── auth/               # API key authentication
-│       ├── infra/              # Infrastructure management
-│       └── health/             # Health checks
-├── dashboard/                  # React web dashboard
-├── docs/                      # Documentation
-├── docker-compose.yml
-├── Dockerfile
-└── package.json
-```
-
----
-
 ## 📚 Documentation
 
-Comprehensive documentation is available in the `docs/` folder:
+Comprehensive documentation lives in the `docs/` folder:
 
-| Document                                                | Description                  |
-| ------------------------------------------------------- | ---------------------------- |
-| [Project Overview](./docs/01-project-overview.md)       | Introduction and goals       |
-| [Requirements](./docs/02-requirements-specification.md) | Feature specifications       |
-| [Architecture](./docs/03-system-architecture.md)        | System design                |
-| [Security](./docs/04-security-design.md)                | Security implementation      |
-| [Database](./docs/05-database-design.md)                | Data models and migrations   |
-| [API Spec](./docs/06-api-specification.md)              | Complete API reference       |
-| [Development](./docs/08-development-guidelines.md)      | Coding standards             |
-| [Migration Guide](./docs/14-migration-guide.md)         | Database & storage migration |
+| Document                                           | Description                 |
+| -------------------------------------------------- | --------------------------- |
+| [Project Overview](./docs/01-project-overview.md)  | Introduction and goals      |
+| [Architecture](./docs/03-system-architecture.md)   | System design               |
+| [Security](./docs/04-security-design.md)           | Security implementation     |
+| [Database](./docs/05-database-design.md)           | Data models and migrations  |
+| [API Spec](./docs/06-api-specification.md)         | Complete API reference      |
+| [Development](./docs/08-development-guidelines.md) | Coding standards            |
+| [fail2ban](./docs/31-fail2ban.md)                  | Intrusion prevention (fork) |
+| [2FA / TOTP](./docs/32-2fa.md)                     | Dashboard two-factor (fork) |
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+Contributions to this fork are welcome:
 
-1. **Fork** the repository
+1. **Fork** this repository
 2. **Create** your feature branch (`git checkout -b feature/amazing-feature`)
 3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-Please read our [Development Guidelines](./docs/08-development-guidelines.md) for coding standards and best practices.
+Please read the [Development Guidelines](./docs/08-development-guidelines.md) for coding standards and best practices.
 
 ---
 
-## 📄 License
+## 🙏 Credits & License
 
-This project is licensed under the **MIT License** – free for personal and commercial use.
+This is a fork of **[`rmyndharis/OpenWA`](https://github.com/rmyndharis/OpenWA)** by **Yudhi Armyndharis and the OpenWA Contributors**, whose work is the foundation everything here builds on. All credit for the original architecture and feature set belongs to them.
 
-See [LICENSE](./LICENSE) for details.
+Fork maintenance and the security-hardening work described above are by **[Cristian Casapu](https://github.com/CristianCasapu)**.
+
+Both the original project and this fork are licensed under the **MIT License** — free for personal and commercial use. Under the terms of that license, the original copyright and permission notice are retained in [`LICENSE`](./LICENSE) alongside the fork maintainer's notice. See [LICENSE](./LICENSE) for the full text.
 
 ---
 
 <div align="center">
 
-**OpenWA** – Free, Open Source WhatsApp API Gateway
+**OpenWA** — Self-hosted WhatsApp API Gateway · hardened fork
 
-[📖 Documentation](./docs/README.md) · [🔌 API Docs](http://localhost:2785/api/docs) · [🐛 Report Bug](https://github.com/rmyndharis/OpenWA/issues) · [💡 Request Feature](https://github.com/rmyndharis/OpenWA/issues)
+[📖 Documentation](./docs/README.md) · [🔌 API Docs](http://localhost:2785/api/docs) · [🐛 Report Bug](https://github.com/CristianCasapu/OpenWA/issues) · [💡 Request Feature](https://github.com/CristianCasapu/OpenWA/issues)
 
 <br/>
 
-<sub>Made with ❤️ by <a href="https://github.com/rmyndharis">Yudhi Armyndharis</a> and the OpenWA Community</sub>
+<sub>Fork maintained by <a href="https://github.com/CristianCasapu">Cristian Casapu</a> · originally <a href="https://github.com/rmyndharis/OpenWA">OpenWA</a> by <a href="https://github.com/rmyndharis">Yudhi Armyndharis</a> and the OpenWA Community</sub>
 
 </div>

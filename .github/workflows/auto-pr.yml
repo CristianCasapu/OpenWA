@@ -42,12 +42,16 @@ jobs:
   open-pr:
     name: Open draft PR
     runs-on: ubuntu-latest
+    env:
+      # The `secrets` context is not allowed in `if:` (the run is rejected at validation, zero jobs),
+      # so the presence check has to ride through job-level env, where secrets ARE allowed.
+      HAS_APP_SECRETS: ${{ secrets.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
       - name: Mint GitHub App token
         id: app-token
         # Skipped (not failed) while the App secrets are absent; the step below then falls back to
-        # GITHUB_TOKEN. `secrets` is available in step-level `if`, not job-level.
-        if: ${{ secrets.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
+        # GITHUB_TOKEN.
+        if: env.HAS_APP_SECRETS == 'true'
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
           app-id: ${{ secrets.APP_ID }}

@@ -51,3 +51,7 @@ process.env.DATABASE_SYNCHRONIZE = 'true';
 process.env.RATE_LIMIT_SHORT_LIMIT = '100000';
 process.env.RATE_LIMIT_MEDIUM_LIMIT = '100000';
 process.env.RATE_LIMIT_LONG_LIMIT = '100000';
+// Disable the brute-force auth lockout for e2e: suites deliberately send many invalid/unauthorized
+// keys from the same loopback IP, which would otherwise trip the per-IP lockout and 429 later
+// assertions. Same rationale as relaxing the rate limits above.
+process.env.AUTH_LOCKOUT_ENABLED = 'false';

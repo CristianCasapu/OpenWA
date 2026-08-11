@@ -16,8 +16,11 @@ name: Auto-PR for working branches
 # trigger other workflows (GitHub's recursion guard), so `ci.yml` would never run on the auto-PR. An
 # App-installation token does trigger them. Configure a GitHub App with repository permissions
 # Contents: Read + Pull requests: Read & write, install it on this repo, and set two repository
-# secrets: APP_ID and APP_PRIVATE_KEY. (To skip the App, drop the token step and set
-# `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` below — simpler, but CI won't run on the auto-PRs.)
+# secrets: APP_ID and APP_PRIVATE_KEY.
+#
+# Until those secrets exist, the mint step is skipped and the run falls back to GITHUB_TOKEN: PRs
+# still get opened, but CI will not run on them (push a follow-up commit or close/reopen to trigger
+# it). Without the fallback, every scheduled sweep failed outright on the missing secrets.
 
 on:
   push:
@@ -42,6 +45,9 @@ jobs:
     steps:
       - name: Mint GitHub App token
         id: app-token
+        # Skipped (not failed) while the App secrets are absent; the step below then falls back to
+        # GITHUB_TOKEN. `secrets` is available in step-level `if`, not job-level.
+        if: ${{ secrets.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -49,7 +55,8 @@ jobs:
 
       - name: Open a draft PR for each working branch that lacks one
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # A skipped mint step yields an empty output, so this resolves to GITHUB_TOKEN.
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
           PUSHED_BRANCH: ${{ github.ref_name }}

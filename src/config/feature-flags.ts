@@ -17,6 +17,13 @@ export interface FeatureFlags {
   simulateTyping: boolean;
   /** Upper bound (ms) on the humanising typing pause. Default 5000. */
   simulateTypingMaxMs: number;
+  /**
+   * ElectroPrep fork: drop every inbound message (and contact status) at the engine callback — no
+   * row, no hook/plugin/automation run, no webhook, no websocket frame. For an operator whose
+   * policy is to never read or keep what people send to the number; only the account's own sends
+   * (and their acks) flow through. Opt-in — default OFF.
+   */
+  dropInboundMessages: boolean;
 }
 
 /**
@@ -35,6 +42,7 @@ export function computeFeatureFlags(env: NodeJS.ProcessEnv = process.env): Featu
     resolveLidToPhone: env.RESOLVE_LID_TO_PHONE === 'true',
     simulateTyping: env.SIMULATE_TYPING !== 'false',
     simulateTypingMaxMs: Number(env.SIMULATE_TYPING_MAX_MS) || 5000,
+    dropInboundMessages: env.DROP_INBOUND_MESSAGES === 'true',
   };
 }
 

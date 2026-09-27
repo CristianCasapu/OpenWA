@@ -376,6 +376,39 @@ describe('MessageProjector (inbound projection)', () => {
   });
 
   describe('handleInboundMessage', () => {
+    describe('DROP_INBOUND_MESSAGES (ElectroPrep fork)', () => {
+      const flags = { storeEphemeralMessages: true, resolveLidToPhone: false, dropInboundMessages: true };
+
+      it('drops an inbound message before any side effect', async () => {
+        const engine = makeEngine();
+        engines.set(SESSION_ID, engine);
+        (projector as unknown as { configService: { get: jest.Mock } }).configService.get.mockReturnValue(flags);
+
+        projector.handleInboundMessage(SESSION_ID, engine, makeIncoming());
+        projector.handleInboundMessage(SESSION_ID, engine, makeIncoming({ id: 'st.1', isStatusBroadcast: true }));
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(sessionRepository.update).not.toHaveBeenCalled();
+        expect(hookManager.execute).not.toHaveBeenCalled();
+        expect(messageRepository.insert).not.toHaveBeenCalled();
+        expect(statusStore.ingest).not.toHaveBeenCalled();
+        expect(automationRules.evaluateInbound).not.toHaveBeenCalled();
+        expect(eventsGateway.emitMessage).not.toHaveBeenCalled();
+        expect(webhookService.dispatch).not.toHaveBeenCalled();
+      });
+
+      it('still projects the account’s own (fromMe) messages', async () => {
+        const engine = makeEngine();
+        engines.set(SESSION_ID, engine);
+        (projector as unknown as { configService: { get: jest.Mock } }).configService.get.mockReturnValue(flags);
+
+        projector.handleInboundMessage(SESSION_ID, engine, makeIncoming({ fromMe: true }));
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(messageRepository.insert).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it('drops the message when the engine is no longer the live one for the session', () => {
       const retired = makeEngine();
       const current = makeEngine();

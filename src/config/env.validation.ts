@@ -476,6 +476,9 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     'UPDATE_CHECK_ENABLED',
     // Engine behaviour flags: a typo leaves full-history sync off, or leaves the account marked
     // online on connect (#871 — it suppresses notifications on the operator's own phone).
+    // ElectroPrep fork: `=== 'true'`; a typo would keep storing inbound messages the operator
+    // asked never to keep.
+    'DROP_INBOUND_MESSAGES',
     'BAILEYS_SYNC_FULL_HISTORY',
     'BAILEYS_MARK_ONLINE_ON_CONNECT',
     // Read with `=== 'true'` by DockerService. A typo does not fail silently here — it voids the

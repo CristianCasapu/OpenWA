@@ -12,16 +12,19 @@ describe('feature-flags', () => {
         resolveLidToPhone: false, // opt-in
         simulateTyping: true, // opt-out
         simulateTypingMaxMs: 5000,
+        dropInboundMessages: false, // opt-in (ElectroPrep fork)
       });
     });
 
     it('treats opt-in flags (autoStart, resolveLid) as ON only for the exact string "true"', () => {
       expect(computeFeatureFlags({ AUTO_START_SESSIONS: 'true' }).autoStartSessions).toBe(true);
       expect(computeFeatureFlags({ RESOLVE_LID_TO_PHONE: 'true' }).resolveLidToPhone).toBe(true);
+      expect(computeFeatureFlags({ DROP_INBOUND_MESSAGES: 'true' }).dropInboundMessages).toBe(true);
       // Anything else stays OFF.
       for (const v of ['false', 'TRUE', '1', 'yes', '']) {
         expect(computeFeatureFlags({ AUTO_START_SESSIONS: v }).autoStartSessions).toBe(false);
         expect(computeFeatureFlags({ RESOLVE_LID_TO_PHONE: v }).resolveLidToPhone).toBe(false);
+        expect(computeFeatureFlags({ DROP_INBOUND_MESSAGES: v }).dropInboundMessages).toBe(false);
       }
     });
 

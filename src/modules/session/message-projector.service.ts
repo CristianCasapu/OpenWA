@@ -132,6 +132,10 @@ export class MessageProjector {
   /** Engine callback body, lifted out of initializeEngine so the wiring table stays readable. */
   handleInboundMessage(id: string, engine: IWhatsAppEngine, message: IncomingMessage): void {
     if (!this.engines.isLive(id, engine)) return;
+    // ElectroPrep fork: DROP_INBOUND_MESSAGES — the operator never reads or keeps what people send
+    // to this number. Dropped before ANY side effect (row, hooks, automation, webhook, websocket),
+    // statuses included; the account's own messages (fromMe) are unaffected.
+    if (!message.fromMe && resolveFeatureFlags(this.configService).dropInboundMessages) return;
     if (message.isStatusBroadcast) {
       this.ingestInboundStatus(id, engine, message);
       return;

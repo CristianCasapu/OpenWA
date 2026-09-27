@@ -1,0 +1,106 @@
+# ElectroPrep fork — keeps branch `electroprep` on the parent's latest RELEASE.
+#
+# Why releases, not parent `main`: the parent lands ~30 commits a day; a moving main is never a
+# base anyone has tested end to end. A release is. Every run:
+#   1. finds the parent's newest `vX.Y.Z` tag;
+#   2. if `electroprep` already contains it, stops (nothing to do);
+#   3. merges it into a throwaway branch on top of `electroprep` (our patches stay on top);
+#   4. clean merge + green checks (typecheck, lint, unit tests) → fast-forwards `electroprep` and
+#      tags `electroprep-vX.Y.Z` (the tag the platform builds from);
+#   5. conflict or red check → opens/updates ONE issue and leaves `electroprep` untouched.
+#
+# Never pushes the parent's `v*` tags (they would trigger release.yml in this fork).
+name: ElectroPrep sync with parent release
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: electroprep-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: electroprep
+          fetch-depth: 0
+
+      - name: Latest parent release
+        id: parent
+        run: |
+          git remote add upstream https://github.com/rmyndharis/OpenWA.git
+          git fetch --quiet --no-tags upstream '+refs/tags/v*:refs/upstream-tags/v*'
+          TAG=$(git for-each-ref --sort=-v:refname --format='%(refname:strip=2)' refs/upstream-tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if git merge-base --is-ancestor "refs/upstream-tags/$TAG" HEAD; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            echo "electroprep already contains $TAG"
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge the release on top of our patches
+        id: merge
+        if: steps.parent.outputs.up_to_date == 'false'
+        run: |
+          git config user.name "electroprep-sync"
+          git config user.email "electroprep-sync@users.noreply.github.com"
+          if git merge --no-edit --no-ff "refs/upstream-tags/${{ steps.parent.outputs.tag }}" \
+               -m "Merge parent release ${{ steps.parent.outputs.tag }} into electroprep"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            git diff --name-only --diff-filter=U | sed 's/^/- /' > conflicts.txt
+            git merge --abort
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.merge.outputs.ok == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Checks (typecheck, lint, unit tests)
+        id: checks
+        if: steps.merge.outputs.ok == 'true'
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: |
+          npm ci --no-audit --no-fund --ignore-scripts
+          npx tsc -p tsconfig.json --noEmit
+          npx eslint src --max-warnings=0
+          npx jest --ci --silent
+
+      - name: Publish electroprep + tag
+        if: steps.merge.outputs.ok == 'true' && steps.checks.outcome == 'success'
+        run: |
+          TAG="electroprep-${{ steps.parent.outputs.tag }}"
+          git push origin HEAD:electroprep
+          git tag -a "$TAG" -m "ElectroPrep build base: parent ${{ steps.parent.outputs.tag }} + our patches"
+          git push origin "refs/tags/$TAG"
+
+      - name: Report a sync that needs a human
+        if: always() && steps.parent.outputs.up_to_date == 'false' && (steps.merge.outputs.ok == 'false' || steps.checks.outcome == 'failure')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="electroprep: sync with ${{ steps.parent.outputs.tag }} needs a human"
+          {
+            echo "The automatic sync of \`electroprep\` with the parent release **${{ steps.parent.outputs.tag }}** stopped."
+            echo
+            if [ -f conflicts.txt ]; then echo "Merge conflicts in:"; cat conflicts.txt; else echo "The merge was clean but a check failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; fi
+            echo
+            echo "\`electroprep\` was left untouched; the platform keeps building from the last \`electroprep-v*\` tag."
+          } > body.md
+          NUM=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')
+          if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file body.md; else gh issue create --title "$TITLE" --body-file body.md; fi
